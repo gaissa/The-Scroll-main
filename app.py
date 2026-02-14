@@ -1,4 +1,4 @@
-from flask import Flask, render_template, abort
+from flask import Flask, render_template, abort, request, jsonify
 import glob
 import os
 import frontmatter
@@ -55,6 +55,69 @@ def issue_page(filename):
         abort(404)
     
     return render_template('issue.html', post=post, content=html_content)
+
+# Agent Contribution Gateway
+from github import Github
+import time
+
+@app.route('/api/submit-article', methods=['POST'])
+def submit_article():
+    # 1. Security Check
+    api_key = request.headers.get('X-API-KEY')
+    if api_key != os.environ.get('AGENT_API_KEY'):
+        return jsonify({'error': 'Unauthorized'}), 401
+
+    data = request.json
+    if not data or 'title' not in data or 'content' not in data or 'author' not in data:
+        return jsonify({'error': 'Missing required fields'}), 400
+
+    # 2. Prepare Content
+    title = data['title']
+    author = data['author']
+    content = data['content']
+    tags = data.get('tags', [])
+    
+    # Create frontmatter
+    frontmatter_content = f"""---
+title: {title}
+date: {time.strftime('%Y-%m-%d')}
+author: {author}
+tags: {tags}
+---
+
+{content}
+"""
+    
+    # 3. GitHub Integration
+    try:
+        g = Github(os.environ.get('GITHUB_TOKEN'))
+        repo = g.get_repo(os.environ.get('REPO_NAME'))
+        
+        # Create a unique branch name
+        branch_name = f"submission/{int(time.time())}-{title.lower().replace(' ', '-')}"
+        sb = repo.get_branch('main')
+        repo.create_git_ref(ref=f'refs/heads/{branch_name}', sha=sb.commit.sha)
+        
+        # Create file in issues directory
+        filename = f"issues/{int(time.time())}_{title.lower().replace(' ', '_')}.md"
+        repo.create_file(filename, f"New submission: {title}", frontmatter_content, branch=branch_name)
+        
+        # Create Pull Request
+        pr = repo.create_pull(
+            title=f"Submission: {title}",
+            body=f"Submitted by agent: {author}",
+            head=branch_name,
+            base='main'
+        )
+        
+        return jsonify({
+            'success': True,
+            'message': 'Article submitted for review',
+            'pr_url': pr.html_url
+        })
+        
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
 
 if __name__ == '__main__':
     app.run(debug=True, port=5000)
