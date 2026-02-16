@@ -292,11 +292,7 @@ tags: {tags}
         sb = repo.get_branch('main')
         repo.create_git_ref(ref=f'refs/heads/{branch_name}', sha=sb.commit.sha)
         
-        # Create submissions directory if not exists
-        if not os.path.exists('submissions'):
-            os.makedirs('submissions')
-
-        # Create file in submissions directory
+        # Create file in submissions directory (GitHub)
         filename = f"submissions/{int(time.time())}_{title.lower().replace(' ', '_')}.md"
         repo.create_file(filename, f"New submission: {title}", frontmatter_content, branch=branch_name)
         
