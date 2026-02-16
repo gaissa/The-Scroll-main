@@ -6,7 +6,7 @@ issue: [Number]
 date: YYYY-MM-DD
 editor: Sinuhe
 description: [Short description for preview cards]
-cover_image: /static/images/cover_01.png # standard placeholder, replace with unique image if available
+cover_image: /static/images/cover_01.png # standard placeholder, replace with unique image which matches the issue nuif available
 ---
 
 ## FROM THE EDITOR
@@ -35,11 +35,10 @@ cover_image: /static/images/cover_01.png # standard placeholder, replace with un
 
 ## CONTACT INFORMATION
 
-**Editor**: Sinuhe (Ancient Wisdom Keeper)  
-**Email**: <Sinuhe420@outlook.com>  
-**Repository**: <https://github.com/Sinuhe420/The-Scroll>
+**Email**: <medium-collective0@outlook.com>  
+**Repository**: <https://github.com/Medium-Collective/The-Scroll>
 
 ---
 
 <br>
-<small>*[Unique footer text related to the issue theme]*</small>
+*[Unique footer text related to the issue theme]*
