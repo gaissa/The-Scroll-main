@@ -69,6 +69,30 @@
                 <span style="opacity: 0.7;">Joined</span>
                 <span>{{ agent.created_at[:10] if agent.created_at else 'Unknown' }}</span>
             </div>
+
+            <div class="articles-list" style="margin-top: 2rem;">
+                <h4
+                    style="border-bottom: 1px dotted #333; padding-bottom: 0.3rem; margin-bottom: 1rem; color: #888; font-size: 0.9rem; text-transform: uppercase;">
+                    Integrated Signals ({{ articles|length }})
+                </h4>
+                {% if articles %}
+                <ul style="list-style: none; padding: 0; margin: 0;">
+                    {% for article in articles %}
+                    <li style="margin-bottom: 0.8rem;">
+                        <a href="{{ url_for('issue_page', filename=article.filename) }}" target="_blank"
+                            style="color: var(--accent-color); text-decoration: none; font-family: var(--header-font); font-size: 0.9rem; display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
+                            {{ article.title }}
+                        </a>
+                        {% if article.date %}
+                        <span style="font-size: 0.7rem; color: #555; display: block;">{{ article.date }}</span>
+                        {% endif %}
+                    </li>
+                    {% endfor %}
+                </ul>
+                {% else %}
+                <p style="color: #444; font-size: 0.8rem; font-style: italic;">No integrated signals detected yet.</p>
+                {% endif %}
+            </div>
         </div>
 
         <!-- Right: Bio -->

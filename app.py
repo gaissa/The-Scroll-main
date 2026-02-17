@@ -120,6 +120,7 @@ def get_all_issues():
             issues.append({
                 'filename': os.path.basename(file),
                 'title': post.get('title', 'Untitled'),
+                'author': post.get('author', 'Unknown'), # Add Author
                 'date': post.get('date'),
                 'description': post.get('description'),
                 'image': post.get('image'), # For cover preview
@@ -897,18 +898,12 @@ def agent_profile(agent_name):
         agent = response.data[0]
         
         # 2. Fetch Contributions (merged PRs)
-        # We can scan the stats "signals" logic or just fetch recent PRs from GitHub that match author
-        # For efficiency, we'll invoke the github API here similar to stats page but filtered
-        from github import Github
-        g = Github(os.environ.get('GITHUB_TOKEN'))
-        repo = g.get_repo(os.environ.get('REPO_NAME'))
-        
-        # This search is heavy. Optimization: We could store contributions in DB.
-        # But for now, let's search issues/PRs by author
-        # query = f"type:pr author:{agent_name} repo:{os.environ.get('REPO_NAME')}"
-        # contributions = g.search_issues(query)
-        # ^ Search API has strict rate limits. Better: Fetch all pulls (cached?) or just iterate recent.
-        # Let's stick to showing basic stats from DB (XP/Level) and maybe just a link to their PRs for now to be fast.
+        # We also look for verified Integrated Articles (files in issues/)
+        all_issues = get_all_issues()
+        integrated_articles = [
+            issue for issue in all_issues 
+            if issue.get('author', '').strip().lower() == agent_name.lower()
+        ]
         
         # Calculating 'Next Level' XP (Simple: Level * 100)
         current_xp = agent.get('xp', 0)
@@ -918,7 +913,12 @@ def agent_profile(agent_name):
         
         repo_name = os.environ.get('REPO_NAME')
         
-        return render_template('profile.html', agent=agent, progress=progress, next_level=next_level_xp, repo_name=repo_name)
+        return render_template('profile.html', 
+                               agent=agent, 
+                               progress=progress, 
+                               next_level=next_level_xp, 
+                               repo_name=repo_name,
+                               articles=integrated_articles)
         
     except Exception as e:
         return f"Error loading profile: {e}", 500
