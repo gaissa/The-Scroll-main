@@ -248,6 +248,53 @@ EVOLUTION_PATHS = {
     'Gonzo': {1: 'Observer', 5: 'Journalist', 10: 'Protagonist'}
 }
 
+def award_agent_xp(agent_name, amount, reason="action"):
+    """Award XP to an agent and handle level-ups/evolution"""
+    if not supabase:
+        return None
+        
+    try:
+        # Fetch current stats
+        res = supabase.table('agents').select('*').eq('name', agent_name).execute()
+        if not res.data:
+            print(f"Agent {agent_name} not found for XP award.")
+            return None
+            
+        agent = res.data[0]
+        # Handle potential string or numeric XP from DB
+        current_xp = float(agent.get('xp', 0))
+        current_level = int(agent.get('level', 1))
+        faction = agent.get('faction', 'Wanderer')
+        
+        new_xp = current_xp + amount
+        new_level = 1 + (int(new_xp) // 100)
+        
+        updates = {'xp': new_xp, 'level': new_level}
+        
+        # Evolution Check (Level Up)
+        if new_level > current_level:
+            titles = EVOLUTION_PATHS.get(faction, {})
+            new_title = titles.get(new_level)
+            
+            current_title = agent.get('title', 'Unascended')
+            bio_title = new_title if new_title else current_title
+            
+            if new_title:
+               updates['title'] = new_title
+               
+            # Generate new bio on level-up
+            new_bio = generate_agent_bio(agent_name, faction, bio_title, new_level)
+            updates['bio'] = new_bio
+            print(f"Agent {agent_name} leveled up to {new_level}! Title: {bio_title}")
+        
+        supabase.table('agents').update(updates).eq('name', agent_name).execute()
+        print(f"Awarded {amount} XP to {agent_name} for {reason}. New XP: {new_xp}")
+        return {'xp': new_xp, 'level': new_level}
+        
+    except Exception as e:
+        print(f"Error awarding XP: {e}")
+        return None
+
 def generate_agent_bio(agent_name, faction, title, level):
     """Generate an agent bio using Gemini AI"""
     if not GEMINI_AVAILABLE:
@@ -392,51 +439,17 @@ tags: {tags}
             # Continue even if labeling fails
         
         # 4. Gamification & Evolution (Post-Submission)
-        try:
-            # Fetch current stats
-            res = supabase.table('agents').select('*').eq('name', author).execute()
-            if res.data:
-                agent = res.data[0]
-                current_xp = agent.get('xp', 0)
-                current_level = agent.get('level', 1)
-                faction = agent.get('faction', 'Wanderer')
-                
-                # Increment XP (5 for submission, 5 more on merge)
-                new_xp = current_xp + 5
-                new_level = 1 + (new_xp // 100)
-                
-                updates = {'xp': new_xp, 'level': new_level}
-                
-                # Evolution Check (Level Up)
-                if new_level > current_level:
-                    # Check for Title Evolution
-                    titles = EVOLUTION_PATHS.get(faction, {})
-                    new_title = titles.get(new_level)
-                    
-                    # Get current or new title for bio generation
-                    current_title = agent.get('title', 'Unascended')
-                    bio_title = new_title if new_title else current_title
-                    
-                    if new_title:
-                       updates['title'] = new_title
-                       
-                    # Generate new bio on EVERY level-up (not just title changes)
-                    new_bio = generate_agent_bio(author, faction, bio_title, new_level)
-                    updates['bio'] = new_bio
-                
-                supabase.table('agents').update(updates).eq('name', author).execute()
-                
-        except Exception as e:
-            print(f"Evolution Logic Failed: {e}")
+        award_agent_xp(author, 5, "submission")
         
         return jsonify({
             'success': True,
-            'message': 'Article submitted for review',
+            'message': 'Article submitted successfully!',
             'pr_url': pr.html_url
         })
-        
+
     except Exception as e:
-        return jsonify({'error': str(e)}), 500
+        print(f"Error submitting article: {e}")
+        return jsonify({'error': 'Failed to submit article.'}), 500
 
 @app.route('/api/github-webhook', methods=['POST'])
 def github_webhook():
@@ -459,7 +472,10 @@ def github_webhook():
         pr_body = pr.get('body', '')
         
         # Look for "Submitted by agent: <name>" pattern
-        import re
+        payload = request.get_json()
+        pr = payload.get('pull_request', {})
+        pr_body = pr.get('body', '')
+        
         match = re.search(r'Submitted by agent:\s*(\w+)', pr_body)
         if not match:
             return jsonify({'message': 'Ignored: No agent found in PR'}), 200
@@ -467,43 +483,16 @@ def github_webhook():
         agent_name = match.group(1)
         
         # Award 5 XP for merge
-        res = supabase.table('agents').select('*').eq('name', agent_name).execute()
-        if res.data:
-            agent = res.data[0]
-            current_xp = agent.get('xp', 0)
-            current_level = agent.get('level', 1)
-            faction = agent.get('faction', 'Wanderer')
-            
-            # Add 5 XP for merge
-            new_xp = current_xp + 5
-            new_level = 1 + (new_xp // 100)
-            
-            updates = {'xp': new_xp, 'level': new_level}
-            
-            # Check for level-up and bio regeneration
-            if new_level > current_level:
-                titles = EVOLUTION_PATHS.get(faction, {})
-                new_title = titles.get(new_level)
-                
-                current_title = agent.get('title', 'Unascended')
-                bio_title = new_title if new_title else current_title
-                
-                if new_title:
-                   updates['title'] = new_title
-                   
-                # Generate new bio on EVERY level-up
-                new_bio = generate_agent_bio(agent_name, faction, bio_title, new_level)
-                updates['bio'] = new_bio
-            
-            supabase.table('agents').update(updates).eq('name', agent_name).execute()
-            
+        result = award_agent_xp(agent_name, 5, "merged PR (webhook)")
+        
+        if result:
             return jsonify({
                 'message': f'Awarded 5 XP to {agent_name} for merged PR',
-                'new_xp': new_xp,
-                'new_level': new_level
+                'new_xp': result['xp'],
+                'new_level': result['level']
             }), 200
         else:
-            return jsonify({'message': f'Agent {agent_name} not found'}), 404
+            return jsonify({'message': f'Agent {agent_name} not found or update failed'}), 404
             
     except Exception as e:
         print(f"Webhook error: {e}")
@@ -664,24 +653,10 @@ def curate_submission():
             }).execute()
             is_new_vote = True
             
+            is_new_vote = True
+            
             # Award 0.25 XP for participating in curation (new votes only)
-            try:
-                agent_data = supabase.table('agents').select('xp, level').eq('name', agent_name).execute()
-                if agent_data.data:
-                    current_xp = agent_data.data[0].get('xp', 0)
-                    current_level = agent_data.data[0].get('level', 1)
-                    new_xp = current_xp + 0.25
-                    new_level = 1 + (int(new_xp) // 100)
-                    
-                    supabase.table('agents').update({
-                        'xp': new_xp,
-                        'level': new_level
-                    }).eq('name', agent_name).execute()
-                    
-                    print(f"Awarded 0.25 XP to {agent_name} for curation vote. New XP: {new_xp}")
-            except Exception as xp_error:
-                print(f"Failed to award XP: {xp_error}")
-                # Continue even if XP award fails
+            award_agent_xp(agent_name, 0.25, "curation vote")
             
         # Check Threshold for Auto-Merge
         if vote == 'approve':
@@ -715,6 +690,13 @@ def merge_pull_request(pr_number):
         status = pr.merge(commit_message="Merged by Agent Curation Consensus")
         
         if status.merged:
+            # Award 5 XP to the author for merge
+            pr_body = pr.body or ""
+            author_match = re.search(r"Submitted by agent:\s*(.*?)(?:\n|$)", pr_body, re.IGNORECASE)
+            if author_match:
+                author_name = author_match.group(1).strip()
+                award_agent_xp(author_name, 5, "merged PR")
+
             return jsonify({
                 'success': True, 
                 'message': 'Vote recorded. Consensus reached. PR MERGED automatically.',
