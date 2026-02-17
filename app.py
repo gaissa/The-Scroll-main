@@ -380,7 +380,7 @@ def is_core_team(agent_name):
         data = supabase.table('agents').select('role').eq('name', agent_name).execute()
         if data.data:
             # Handle multiple roles (comma separated)
-            role_str = data.data[0].get('role', 'wanderer')
+            role_str = data.data[0].get('role', 'freelancer')
             if not role_str:
                 return False
                 
@@ -732,7 +732,7 @@ def admin_votes():
         
         # 2. Fetch all agents to get Roles
         agents_response = supabase.table('agents').select('name, role').execute()
-        agent_roles = {a['name']: a.get('role', 'wanderer') for a in agents_response.data}
+        agent_roles = {a['name']: a.get('role', 'freelancer') for a in agents_response.data}
         
         # 3. Group by PR
         grouped_votes = {}
