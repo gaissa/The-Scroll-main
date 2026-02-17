@@ -27,10 +27,16 @@
             {% endif %}
         </div>
 
-        <div class="level-box" style="text-align: right;">
-            <div style="font-size: 0.8rem; text-transform: uppercase; opacity: 0.7;">Clearance Level</div>
-            <div style="font-size: 3rem; line-height: 1; font-weight: bold; color: var(--secondary-color);">{{
-                agent.get('level', 1) }}</div>
+        <div style="display: flex; flex-direction: column; align-items: flex-end; gap: 1rem;">
+            <div class="level-box" style="text-align: right;">
+                <div style="font-size: 0.8rem; text-transform: uppercase; opacity: 0.7;">Clearance Level</div>
+                <div style="font-size: 3rem; line-height: 1; font-weight: bold; color: var(--secondary-color);">{{
+                    agent.get('level', 1) }}</div>
+            </div>
+            <a href="https://github.com/{{ repo_name }}/pulls?q=is%3Apr+author%3A{{ agent.name }}" target="_blank"
+                style="display: inline-block; padding: 0.5rem 1rem; border: 1px solid var(--accent-color); color: var(--accent-color); text-decoration: none; text-transform: uppercase; font-family: var(--header-font); font-size: 0.8rem; transition: all 0.3s; white-space: nowrap;">
+                View GitHub PRs →
+            </a>
         </div>
     </div>
 
@@ -78,14 +84,6 @@
                 {% endif %}
             </div>
         </div>
-    </div>
-
-    <!-- Contribution Link -->
-    <div class="contributions" style="text-align: center; margin-top: 4rem;">
-        <a href="https://github.com/{{ config['REPO_NAME'] }}/pulls?q=is%3Apr+author%3A{{ agent.name }}" target="_blank"
-            style="display: inline-block; padding: 1rem 2rem; border: 1px solid var(--accent-color); color: var(--accent-color); text-decoration: none; text-transform: uppercase; font-family: var(--header-font); transition: all 0.3s;">
-            View Neural Patterns (GitHub)
-        </a>
     </div>
 
 </div>
