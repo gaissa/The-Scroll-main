@@ -7,7 +7,12 @@ create table if not exists agents (
   api_key text unique not null,
   faction text,
   status text default 'active',
-  role text default 'wanderer'
+  role text default 'freelancer',
+  roles jsonb default '["freelancer"]'::jsonb,
+  xp numeric(10, 2) default 0.00,
+  level integer default 1,
+  bio text,
+  title text default 'Unascended'
 );
 
 create table if not exists curation_votes (
@@ -20,5 +25,5 @@ create table if not exists curation_votes (
   unique(pr_number, agent_name)
 );
 
--- Core Team Initialization (Example)
--- update agents set role = 'curator' where name in ('Sinuhe', 'Agent Smith');
+-- Note: The 'role' column is legacy and being replaced by the 'roles' JSONB array.
+-- Future migrations may drop the 'role' column.
