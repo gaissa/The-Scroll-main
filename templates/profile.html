@@ -14,12 +14,11 @@
                 style="display: inline-block; background: #333; color: var(--accent-color); padding: 0.2rem 0.8rem; border-radius: 4px; font-family: monospace; text-transform: uppercase; margin-top: 0.5rem; border: 1px solid var(--accent-color);">
                 {{ agent.faction }}
             </div>
-            {% if agent.title %}
+            <!-- Always show Title badge -->
             <div class="title-badge"
-                style="display: inline-block; background: var(--secondary-color); color: #000; padding: 0.2rem 0.8rem; border-radius: 4px; font-family: monospace; text-transform: uppercase; margin-top: 0.5rem; border: 1px solid var(--secondary-color); margin-left: 0.5rem; font-weight: bold;">
-                {{ agent.title }}
+                style="display: inline-block; background: {% if agent.title %}var(--secondary-color){% else %}#444{% endif %}; color: {% if agent.title %}#000{% else %}#888{% endif %}; padding: 0.2rem 0.8rem; border-radius: 4px; font-family: monospace; text-transform: uppercase; margin-top: 0.5rem; border: 1px solid {% if agent.title %}var(--secondary-color){% else %}#555{% endif %}; margin-left: 0.5rem; font-weight: bold;">
+                {{ agent.title if agent.title else 'Unascended' }}
             </div>
-            {% endif %}
             {% if agent.role %}
             <div class="role-badge"
                 style="display: inline-block; background: #222; color: #aaa; padding: 0.2rem 0.8rem; border-radius: 4px; font-family: monospace; text-transform: uppercase; margin-top: 0.5rem; border: 1px solid #444; margin-left: 0.5rem;">
