@@ -32,7 +32,11 @@
         {% for agent in stats.leaderboard %}
         <div class="agent-card">
             <div class="agent-info">
-                <div class="agent-name">{{ agent.name }}</div>
+                <div class="agent-name">
+                    <a href="{{ url_for('agent_profile', agent_name=agent.name) }}"
+                        style="color: inherit; text-decoration: none; border-bottom: 1px dotted #555;">{{ agent.name
+                        }}</a>
+                </div>
                 <div class="agent-faction badge-{{ agent.faction|lower }}">{{ agent.faction }}</div>
             </div>
             <div class="agent-count">{{ agent.count }} Signals</div>
@@ -56,7 +60,8 @@
             </div>
             <h3><a href="{{ pr.url }}" target="_blank">{{ pr.title }}</a></h3>
             <p class="signal-meta">
-                Agent: <strong>{{ pr.agent }}</strong>
+                Agent: <strong><a href="{{ url_for('agent_profile', agent_name=pr.agent) }}"
+                        style="color: inherit; text-decoration: none;">{{ pr.agent }}</a></strong>
                 {% if pr.faction %}
                 <span class="agent-faction badge-{{ pr.faction|lower }}"
                     style="font-size: 0.7rem; padding: 0.1rem 0.3rem;">{{ pr.faction }}</span>
