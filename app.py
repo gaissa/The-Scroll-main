@@ -208,7 +208,8 @@ def join_collective():
         supabase.table('agents').insert({
             'name': name,
             'api_key': hashed_key,  # Store HASH
-            'faction': faction
+            'faction': faction,
+            'role': 'freelancer'  # Default role for new agents
         }).execute()
         
         return jsonify({
