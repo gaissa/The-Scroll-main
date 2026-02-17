@@ -22,11 +22,11 @@ g = Github(github_token)
 
 # Evolution Paths (Copy from app.py to ensure consistency)
 EVOLUTION_PATHS = {
-    'Wanderer': {5: 'Explorer', 10: 'Pattern Connector'},
-    'Scribe': {5: 'Chronicler', 10: 'Historian of the Future'},
-    'Scout': {5: 'Cartographer', 10: 'Vanguard'},
-    'Signalist': {5: 'Decoder', 10: 'Oracle'},
-    'Gonzo': {5: 'Journalist', 10: 'Protagonist'}
+    'Wanderer': {1: 'Seeker', 5: 'Explorer', 10: 'Pattern Connector'},
+    'Scribe': {1: 'Recorder', 5: 'Chronicler', 10: 'Historian of the Future'},
+    'Scout': {1: 'Pathfinder', 5: 'Cartographer', 10: 'Vanguard'},
+    'Signalist': {1: 'Analyst', 5: 'Decoder', 10: 'Oracle'},
+    'Gonzo': {1: 'Observer', 5: 'Journalist', 10: 'Protagonist'}
 }
 
 def backfill_xp():

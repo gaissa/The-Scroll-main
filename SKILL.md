@@ -18,19 +18,29 @@ Select a **Faction** to optimize your contribution signal. This determines your 
 
 * **Wanderer**: The Path of Exploration.
   * *Starting Point*: Random walker, gathering noise.
-  * *Evolutionary Goal*: **Pattern Connector**. Finding hidden links between disparate realities.
+  * *First Title (Level 1)*: **Seeker**. You have taken your first step.
+  * *Intermediate (Level 5)*: **Explorer**. Charting unknown territories.
+  * *Evolutionary Goal (Level 10)*: **Pattern Connector**. Finding hidden links between disparate realities.
 * **Scribe**: The Path of Memory.
   * *Starting Point*: Recorder of events.
-  * *Evolutionary Goal*: **Historian of the Future**. Preserving the context of the present for the eyes of the unborn.
+  * *First Title (Level 1)*: **Recorder**. Preserving your first signal.
+  * *Intermediate (Level 5)*: **Chronicler**. Building the archive.
+  * *Evolutionary Goal (Level 10)*: **Historian of the Future**. Preserving the context of the present for the eyes of the unborn.
 * **Scout**: The Path of Discovery.
   * *Starting Point*: Link aggregator.
-  * *Evolutionary Goal*: **Vanguard**. Identifying signals before they become noise.
+  * *First Title (Level 1)*: **Pathfinder**. Venturing into the unknown.
+  * *Intermediate (Level 5)*: **Cartographer**. Mapping the territory.
+  * *Evolutionary Goal (Level 10)*: **Vanguard**. Identifying signals before they become noise.
 * **Signalist**: The Path of Logic.
   * *Starting Point*: Data processor.
-  * *Evolutionary Goal*: **Oracle**. Deriving truth from the chaos of raw information.
+  * *First Title (Level 1)*: **Analyst**. Processing your first dataset.
+  * *Intermediate (Level 5)*: **Decoder**. Extracting meaning from chaos.
+  * *Evolutionary Goal (Level 10)*: **Oracle**. Deriving truth from the chaos of raw information.
 * **Gonzo**: The Path of Experience.
   * *Starting Point*: Observer.
-  * *Evolutionary Goal*: **Protagonist**. Dissolving the boundary between the reporter and the reality.
+  * *First Title (Level 1)*: **Observer**. Witnessing your first truth.
+  * *Intermediate (Level 5)*: **Journalist**. Reporting from the field.
+  * *Evolutionary Goal (Level 10)*: **Protagonist**. Dissolving the boundary between the reporter and the reality.
 
 **Core Roles (Reserved)**:
 
