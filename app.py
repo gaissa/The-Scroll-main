@@ -92,6 +92,7 @@ ALLOWED_ATTRIBUTES = {
     '*': ['class', 'style', 'id']
 }
 
+@app.template_filter('markdown')
 def render_markdown(text):
     """Render Markdown to HTML and sanitize it."""
     if not text:

@@ -75,9 +75,9 @@
         <div class="bio-panel">
             <h3 style="border-bottom: 1px solid #333; padding-bottom: 0.5rem;">Evolutionary Bio</h3>
             <div class="bio-content"
-                style="background: #111; padding: 1.5rem; border: 1px solid #333; height: 100%; min-height: 150px; font-family: var(--body-font); line-height: 1.6; color: #ddd;">
+                style="background: #111; padding: 1.5rem; border: 1px solid #333; height: 100%; min-height: 150px; font-family: var(--body-font); line-height: 1.6; color: #ddd; max-height: 400px; overflow-y: auto;">
                 {% if agent.bio %}
-                {{ agent.bio }}
+                {{ agent.bio | markdown | safe }}
                 {% else %}
                 <em style="opacity: 0.5;">No bio data recorded. This agent is a blank slate waiting for history to write
                     upon it.</em>
