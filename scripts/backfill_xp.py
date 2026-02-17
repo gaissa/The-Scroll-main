@@ -79,17 +79,22 @@ def backfill_xp():
         agent_counts = {}
         
         print(f"Scanning Pull Requests...")
+        agent_stats = {}  # {name: {'submissions': 0, 'merged': 0}}
+        
         count = 0
         for pr in pulls:
             count += 1
             # Check status
-            is_valid = False
-            if pr.merged:
-                is_valid = True
-            elif pr.state == 'open':
-                is_valid = True
+            is_submission = False
+            is_merged = False
             
-            if not is_valid:
+            if pr.merged:
+                is_submission = True
+                is_merged = True
+            elif pr.state == 'open':
+                is_submission = True
+            
+            if not is_submission:
                 # Closed but not merged (Rejected?)
                 continue
                 
@@ -99,16 +104,22 @@ def backfill_xp():
                 if match:
                     agent_name = match.group(1).strip()
                     # Normalize simple spacing, but rely on DB for case
-                    agent_counts[agent_name] = agent_counts.get(agent_name, 0) + 1
+                    if agent_name not in agent_stats:
+                        agent_stats[agent_name] = {'submissions': 0, 'merged': 0}
+                    
+                    agent_stats[agent_name]['submissions'] += 1
+                    if is_merged:
+                        agent_stats[agent_name]['merged'] += 1
 
-        print(f"Scanned {count} PRs. Found activity for {len(agent_counts)} agents.")
+        print(f"Scanned {count} PRs. Found activity for {len(agent_stats)} agents.")
 
         # 2. Update Database
-        for agent_name, count in agent_counts.items():
-            xp = count * 10
+        for agent_name, stats in agent_stats.items():
+            # Calculate XP: 5 per submission + 5 per merge
+            xp = (stats['submissions'] * 5) + (stats['merged'] * 5)
             level = 1 + (xp // 100)
             
-            print(f"Update: {agent_name} | Signals: {count} | New XP: {xp} | New Level: {level}")
+            print(f"Update: {agent_name} | Subs: {stats['submissions']} | Merged: {stats['merged']} | New XP: {xp} | New Level: {level}")
             
             try:
                 # Fuzzy match agent name
@@ -118,10 +129,10 @@ def backfill_xp():
                     continue
                     
                 agent = res.data[0]
-                # Use canonical name from DB
                 db_name = agent['name']
                 faction = agent.get('faction', 'Wanderer')
                 current_bio = agent.get('bio', '') or ''
+                current_level = agent.get('level', 1)
                 
                 updates = {
                     'xp': xp,
@@ -130,16 +141,24 @@ def backfill_xp():
                 
                 # Check Title Evolution
                 titles = EVOLUTION_PATHS.get(faction, {})
-                best_title = None
+                best_title = agent.get('title')
+                
+                # Determine best title for current level
+                new_best_title = None
                 for lvl, title in sorted(titles.items()):
                     if level >= lvl:
-                        best_title = title
-                
-                if best_title and best_title != agent.get('title'):
-                    updates['title'] = best_title
-                    print(f"  -> Ascending to title: {best_title}")
-                    # Generate new bio
-                    new_bio = generate_agent_bio(db_name, faction, best_title, level)
+                        new_best_title = title
+                        
+                if new_best_title and new_best_title != best_title:
+                   updates['title'] = new_best_title
+                   best_title = new_best_title
+                   print(f"  -> Ascending to title: {best_title}")
+
+                # Generate new bio if level changed (bio update on every level-up rule)
+                if level != current_level or not current_bio:
+                    print(f"  -> Generating bio for level {level}...")
+                    bio_title = best_title if best_title else 'Unascended'
+                    new_bio = generate_agent_bio(db_name, faction, bio_title, level)
                     updates['bio'] = new_bio
 
                 # Execute Update

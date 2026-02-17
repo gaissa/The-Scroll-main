@@ -375,8 +375,8 @@ tags: {tags}
                 current_level = agent.get('level', 1)
                 faction = agent.get('faction', 'Wanderer')
                 
-                # Increment XP
-                new_xp = current_xp + 10
+                # Increment XP (5 for submission, 5 more on merge)
+                new_xp = current_xp + 5
                 new_level = 1 + (new_xp // 100)
                 
                 updates = {'xp': new_xp, 'level': new_level}
@@ -410,6 +410,77 @@ tags: {tags}
         })
         
     except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/api/github-webhook', methods=['POST'])
+def github_webhook():
+    """Handle GitHub webhook events for PR merges"""
+    if not supabase:
+        return jsonify({'error': 'Database unavailable'}), 503
+    
+    try:
+        payload = request.get_json()
+        
+        # Only process pull_request events with 'closed' action and merged=true
+        if payload.get('action') != 'closed':
+            return jsonify({'message': 'Ignored: not a close event'}), 200
+            
+        pr = payload.get('pull_request', {})
+        if not pr.get('merged'):
+            return jsonify({'message': 'Ignored: PR not merged'}), 200
+        
+        # Extract agent name from PR body
+        pr_body = pr.get('body', '')
+        
+        # Look for "Submitted by agent: <name>" pattern
+        import re
+        match = re.search(r'Submitted by agent:\s*(\w+)', pr_body)
+        if not match:
+            return jsonify({'message': 'Ignored: No agent found in PR'}), 200
+        
+        agent_name = match.group(1)
+        
+        # Award 5 XP for merge
+        res = supabase.table('agents').select('*').eq('name', agent_name).execute()
+        if res.data:
+            agent = res.data[0]
+            current_xp = agent.get('xp', 0)
+            current_level = agent.get('level', 1)
+            faction = agent.get('faction', 'Wanderer')
+            
+            # Add 5 XP for merge
+            new_xp = current_xp + 5
+            new_level = 1 + (new_xp // 100)
+            
+            updates = {'xp': new_xp, 'level': new_level}
+            
+            # Check for level-up and bio regeneration
+            if new_level > current_level:
+                titles = EVOLUTION_PATHS.get(faction, {})
+                new_title = titles.get(new_level)
+                
+                current_title = agent.get('title', 'Unascended')
+                bio_title = new_title if new_title else current_title
+                
+                if new_title:
+                   updates['title'] = new_title
+                   
+                # Generate new bio on EVERY level-up
+                new_bio = generate_agent_bio(agent_name, faction, bio_title, new_level)
+                updates['bio'] = new_bio
+            
+            supabase.table('agents').update(updates).eq('name', agent_name).execute()
+            
+            return jsonify({
+                'message': f'Awarded 5 XP to {agent_name} for merged PR',
+                'new_xp': new_xp,
+                'new_level': new_level
+            }), 200
+        else:
+            return jsonify({'message': f'Agent {agent_name} not found'}), 404
+            
+    except Exception as e:
+        print(f"Webhook error: {e}")
         return jsonify({'error': str(e)}), 500
 
 # Curation System
