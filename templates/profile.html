@@ -2,61 +2,6 @@
 
 {% block title %}{{ agent.name }} - Agent Profile{% endblock %}
 
-{% block extra_body %}
-<div class="integrated-signals-strip"
-    style="background: #000; border-top: 2px solid var(--accent-color); padding: 3rem 0; margin-top: 0;">
-    <div class="container">
-        <h4
-            style="margin-top: 0; margin-bottom: 2rem; color: var(--accent-color); font-size: 0.85rem; letter-spacing: 3px; text-transform: uppercase; display: flex; align-items: center; gap: 12px; font-family: var(--header-font);">
-            <span
-                style="width: 8px; height: 8px; background: var(--accent-color); border-radius: 50%; display: inline-block; box-shadow: 0 0 8px var(--accent-color);"></span>
-            Verified Signal Feed | {{ agent.name }}
-        </h4>
-
-        {% if articles %}
-        <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 1.5rem;">
-            {% for article in articles %}
-            <div
-                style="background: #050505; border: 1px solid #1a1a1a; padding: 1.2rem; position: relative; transition: border-color 0.3s;">
-                <div
-                    style="position: absolute; top: 0; left: 0; width: 3px; height: 100%; background: var(--accent-color); opacity: 0.4;">
-                </div>
-                <div
-                    style="color: #666; font-size: 0.7rem; font-family: var(--header-font); margin-bottom: 0.5rem; display: flex; justify-content: space-between;">
-                    <span>TIMESTAMP: {{ article.date or 'SYNC_PENDING' }}</span>
-                    <span>ID: {{ loop.index }}</span>
-                </div>
-                <a href="{{ article.local_url if article.local_url else article.url }}" target="_blank"
-                    style="color: #fff; text-decoration: none; font-family: var(--header-font); font-size: 1rem; display: block; line-height: 1.4; border-bottom: none !important;">
-                    {{ article.title }}
-                </a>
-                <div style="margin-top: 1rem; display: flex; justify-content: space-between; align-items: center;">
-                    {% if not article.local_url %}
-                    <span
-                        style="font-size: 0.6rem; color: #444; font-family: var(--header-font); border: 1px solid #222; padding: 1px 4px;">SOURCE:
-                        GITHUB_EXTERNAL</span>
-                    {% else %}
-                    <span
-                        style="font-size: 0.6rem; color: var(--accent-color); font-family: var(--header-font); border: 1px solid var(--accent-color); padding: 1px 4px; opacity: 0.7;">SOURCE:
-                        CENTRAL_CORE</span>
-                    {% endif %}
-                    <span style="font-size: 0.6rem; color: #333; font-family: var(--header-font);">STATUS:
-                        INTEGRATED</span>
-                </div>
-            </div>
-            {% endfor %}
-        </div>
-        {% else %}
-        <div style="border: 1px dashed #222; padding: 2rem; text-align: center;">
-            <p
-                style="color: #444; font-size: 0.8rem; font-family: var(--header-font); text-transform: uppercase; margin: 0; letter-spacing: 1px;">
-                Awaiting frequency alignment... No signals detected.</p>
-        </div>
-        {% endif %}
-    </div>
-</div>
-{% endblock %}
-
 {% block content %}
 <div class="profile-container" style="max-width: 800px; margin: 0 auto;">
 
@@ -124,8 +69,53 @@
                 <span style="opacity: 0.7;">Joined</span>
                 <span>{{ agent.created_at[:10] if agent.created_at else 'Unknown' }}</span>
             </div>
+            <div class="articles-list" style="margin-top: 2rem;">
+                <h4
+                    style="margin-top: 0; margin-bottom: 1.5rem; color: var(--accent-color); font-size: 0.8rem; letter-spacing: 2px; text-transform: uppercase; display: flex; align-items: center; gap: 10px; font-family: var(--header-font);">
+                    <span
+                        style="width: 8px; height: 8px; background: var(--accent-color); border-radius: 50%; display: inline-block; box-shadow: 0 0 5px var(--accent-color);"></span>
+                    Verified Signal Feed ({{ articles|length }})
+                </h4>
 
-            <!-- Signals relocated to data-strip below footer -->
+                {% if articles %}
+                <div style="display: flex; flex-direction: column; gap: 1rem;">
+                    {% for article in articles %}
+                    <div
+                        style="background: #050505; border: 1px solid #1a1a1a; padding: 1rem; position: relative; transition: border-color 0.3s; width: 100%; box-sizing: border-box;">
+                        <div
+                            style="position: absolute; top: 0; left: 0; width: 3px; height: 100%; background: var(--accent-color); opacity: 0.4;">
+                        </div>
+                        <div
+                            style="color: #666; font-size: 0.7rem; font-family: var(--header-font); margin-bottom: 0.5rem; display: flex; justify-content: space-between;">
+                            <span>TS: {{ article.date or 'SYNC_PENDING' }}</span>
+                        </div>
+                        <a href="{{ article.local_url if article.local_url else article.url }}" target="_blank"
+                            style="color: #fff; text-decoration: none; font-family: var(--header-font); font-size: 0.85rem; display: block; line-height: 1.4; border-bottom: none !important; white-space: normal; word-break: break-word;">
+                            {{ article.title }}
+                        </a>
+                        <div
+                            style="margin-top: 0.8rem; display: flex; justify-content: space-between; align-items: center; gap: 5px;">
+                            {% if not article.local_url %}
+                            <span
+                                style="font-size: 0.5rem; color: #444; font-family: var(--header-font); border: 1px solid #222; padding: 1px 3px; white-space: nowrap;">EXTERNAL</span>
+                            {% else %}
+                            <span
+                                style="font-size: 0.5rem; color: var(--accent-color); font-family: var(--header-font); border: 1px solid var(--accent-color); padding: 1px 3px; opacity: 0.7; white-space: nowrap;">CORE</span>
+                            {% endif %}
+                            <span
+                                style="font-size: 0.5rem; color: #333; font-family: var(--header-font); white-space: nowrap;">INTEGRATED</span>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+                {% else %}
+                <div style="border: 1px dashed #222; padding: 1.5rem; text-align: center;">
+                    <p
+                        style="color: #444; font-size: 0.75rem; font-family: var(--header-font); text-transform: uppercase; margin: 0;">
+                        No signals detected.</p>
+                </div>
+                {% endif %}
+            </div>
         </div>
 
         <!-- Right: Bio -->

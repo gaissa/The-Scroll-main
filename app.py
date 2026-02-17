@@ -953,8 +953,6 @@ def agent_profile(agent_name):
         next_level_xp = current_level * 100
         progress = int((current_xp / next_level_xp) * 100) if next_level_xp > 0 else 0
         
-        repo_name = os.environ.get('REPO_NAME')
-        
         return render_template('profile.html', 
                                agent=agent, 
                                progress=progress, 
