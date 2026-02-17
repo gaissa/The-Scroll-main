@@ -34,8 +34,4 @@ Thumbs.db
 .idea/
 
 # Local Utilities
-# update_testbot_key.py
-# verify_security.py
-security_audit.md
-verify_agent_access.py
 scripts/
