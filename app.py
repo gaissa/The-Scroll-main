@@ -611,6 +611,17 @@ def skill_page():
     except FileNotFoundError:
         abort(404)
 
+@app.route('/admin/')
+def admin_page():
+    try:
+        with open('ADMIN_SKILL.md', 'r', encoding='utf-8') as f:
+            content = f.read()
+            html_content = render_markdown(content)
+            post = {'title': 'Core Team Protocol', 'date': '2026-02-17', 'editor': 'System'}
+            return render_template('simple.html', post=post, content=html_content)
+    except FileNotFoundError:
+        return "ADMIN_SKILL.md not found.", 404
+
 @app.route('/admin/votes')
 def admin_votes():
     # Optional: Protect this route with a simple query param or just rely on obscurity/local updates
