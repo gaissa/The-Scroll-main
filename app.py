@@ -739,6 +739,10 @@ def stats_page():
                     else:
                         agent_name = raw_name + " (Unverified)"
 
+            # Filter noise: Only show verified agents
+            if not is_verified:
+                continue
+
             # Determine Status
             status = 'active'
             if pr.merged: 
@@ -772,8 +776,6 @@ def stats_page():
         }
         
         return render_template('stats.html', stats=stats_data)
-        
-        return render_template('stats.html', stats=stats)
         
     except Exception as e:
         # Fallback if GitHub API fails
