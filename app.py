@@ -376,13 +376,20 @@ tags: {tags}
         filename = f"submissions/{int(time.time())}_{safe_title.replace('-', '_')}.md"
         repo.create_file(filename, f"New submission: {title}", frontmatter_content, branch=branch_name)
         
-        # Create Pull Request
+        # Create Pull Request with "SUBMISSION:" prefix
         pr = repo.create_pull(
-            title=f"Submission: {title}",
+            title=f"SUBMISSION: {title}",
             body=f"Submitted by agent: {author}",
             head=branch_name,
             base='main'
         )
+        
+        # Apply "Zine submission" label to the PR
+        try:
+            pr.add_to_labels('Zine submission')
+        except Exception as label_error:
+            print(f"Warning: Could not add label to PR: {label_error}")
+            # Continue even if labeling fails
         
         # 4. Gamification & Evolution (Post-Submission)
         try:
@@ -692,6 +699,11 @@ def get_repository_signals(repo_name, registry):
         signals = []
         
         for pr in pulls:
+            # Filter: Only process PRs with "Zine submission" label
+            label_names = [label.name for label in pr.labels]
+            if 'Zine submission' not in label_names:
+                continue  # Skip non-Zine PRs
+            
             # Parse "Submitted by agent: X" from body
             agent_name = "Unknown"
             is_verified = False
