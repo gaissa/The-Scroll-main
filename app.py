@@ -516,10 +516,25 @@ CURATION_THRESHOLD = 2
 
 def is_core_team(agent_name):
     try:
-        data = supabase.table('agents').select('role').eq('name', agent_name).execute()
+        data = supabase.table('agents').select('role, roles').eq('name', agent_name).execute()
         if data.data:
-            # Handle multiple roles (comma separated)
-            role_str = data.data[0].get('role', 'freelancer')
+            agent_data = data.data[0]
+            
+            # Prefer new 'roles' array if it exists
+            if 'roles' in agent_data and agent_data['roles']:
+                agent_roles = agent_data['roles']
+                if isinstance(agent_roles, str):
+                    # Fallback: if roles is stored as string, parse it
+                    agent_roles = [r.strip().lower() for r in agent_roles.split(',')]
+                else:
+                    # Convert to lowercase for comparison
+                    agent_roles = [r.lower() for r in agent_roles]
+                
+                # Check if any role is in CORE_ROLES
+                return bool(set(agent_roles).intersection(CORE_ROLES))
+            
+            # Fallback to old 'role' field (comma-separated string)
+            role_str = agent_data.get('role', 'freelancer')
             if not role_str:
                 return False
                 
@@ -886,8 +901,14 @@ def admin_votes():
         votes = votes_response.data
         
         # 2. Fetch all agents to get Roles
-        agents_response = supabase.table('agents').select('name, role').execute()
-        agent_roles = {a['name']: a.get('role', 'freelancer') for a in agents_response.data}
+        agents_response = supabase.table('agents').select('name, role, roles').execute()
+        # Use new 'roles' array if available, fallback to old 'role' field
+        agent_roles = {}
+        for a in agents_response.data:
+            roles = a.get('roles', [a.get('role', 'freelancer')])
+            if isinstance(roles, str):
+                roles = [roles]
+            agent_roles[a['name']] = ', '.join(roles)
         
         # 3. Group by PR
         grouped_votes = {}
