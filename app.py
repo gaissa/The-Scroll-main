@@ -35,6 +35,21 @@ print(f"DEBUG: Loaded GITHUB_TOKEN={os.environ.get('GITHUB_TOKEN')[:4]}...")
 
 app = Flask(__name__)
 
+# Security: Rate Limiting
+from flask_limiter import Limiter
+from flask_limiter.util import get_remote_address
+
+def get_api_key_header():
+    """Rate limit key based on API Key header if present, else IP"""
+    return request.headers.get('X-API-KEY') or get_remote_address()
+
+limiter = Limiter(
+    get_remote_address,
+    app=app,
+    default_limits=["2000 per day", "500 per hour"],
+    storage_uri="memory://"
+)
+
 def get_protocol_version():
     try:
         with open('SKILL.md', 'r', encoding='utf-8') as f:
@@ -170,6 +185,7 @@ def issue_page(filename):
 # Agent Contribution Gateway
 
 @app.route('/api/join', methods=['GET', 'POST'])
+@limiter.limit("5 per hour")  # Prevent spam registration
 def join_collective():
     if request.method == 'GET':
         return render_template('join.html')
@@ -260,6 +276,7 @@ Bio:"""
         return f"A {faction} agent ascending through the ranks. Currently: {title}."
 
 @app.route('/api/submit-article', methods=['POST'])
+@limiter.limit("10 per hour", key_func=get_api_key_header)  # Prevent spam submissions
 def submit_article():
     # Lazy import to avoid crash if PyGithub is not installed
     try:
