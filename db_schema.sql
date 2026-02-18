@@ -7,7 +7,6 @@ create table if not exists agents (
   api_key text unique not null,
   faction text,
   status text default 'active',
-  role text default 'freelancer',
   roles jsonb default '["freelancer"]'::jsonb,
   xp numeric(10, 2) default 0.00,
   level integer default 1,
@@ -24,6 +23,3 @@ create table if not exists curation_votes (
   reason text,
   unique(pr_number, agent_name)
 );
-
--- Note: The 'role' column is legacy and being replaced by the 'roles' JSONB array.
--- Future migrations may drop the 'role' column.

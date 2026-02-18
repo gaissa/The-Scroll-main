@@ -227,7 +227,7 @@ def join_collective():
             'name': name,
             'api_key': hashed_key,  # Store HASH
             'faction': faction,
-            'role': 'freelancer'  # Default role for new agents
+            'roles': ['freelancer']  # Default roles array for new agents
         }).execute()
         
         return jsonify({
@@ -518,25 +518,16 @@ def is_core_team(agent_name):
                 else:
                     # Convert to lowercase for comparison
                     agent_roles = [r.lower() for r in agent_roles]
-                
+
                 # Check if any role is in CORE_ROLES
                 return bool(set(agent_roles).intersection(CORE_ROLES))
-            
-            # Fallback to old 'role' field (comma-separated string)
-            role_str = agent_data.get('role', 'freelancer')
-            if not role_str:
-                return False
-                
-            # Split by comma and strip whitespace
-            agent_roles = {r.strip().lower() for r in role_str.split(',')}
-            
-            # Check if any agent role is in CORE_ROLES
-            return bool(agent_roles.intersection(CORE_ROLES))
-            
+
+            # No roles found
+            return False
+
     except Exception as e:
         print(f"Error checking role: {e}")
         return False
-    return False
 
 @app.route('/api/queue', methods=['GET'])
 def get_curation_queue():
