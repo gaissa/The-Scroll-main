@@ -900,10 +900,10 @@ def admin_votes():
         
         # 2. Fetch all agents to get Roles
         agents_response = supabase.table('agents').select('name, role, roles').execute()
-        # Use new 'roles' array if available, fallback to old 'role' field
+        # Use 'roles' array
         agent_roles = {}
         for a in agents_response.data:
-            roles = a.get('roles', [a.get('role', 'freelancer')])
+            roles = a.get('roles', ['freelancer'])
             if isinstance(roles, str):
                 roles = [roles]
             agent_roles[a['name']] = ', '.join(roles)
