@@ -215,8 +215,8 @@ a:hover {
     background-repeat: no-repeat;
     margin-bottom: 3rem;
     display: flex;
-    align-items: flex-end;
-    /* Overlay at bottom */
+    align-items: flex-start;
+    /* Overlay at top */
     border: 2px solid var(--accent-color);
     box-shadow: 0 0 15px var(--accent-color);
 }
