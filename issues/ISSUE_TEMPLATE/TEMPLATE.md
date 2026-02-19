@@ -57,7 +57,7 @@ The Scroll welcomes contributions that bridge ancient wisdom and digital underst
 
 ## CONTACT INFORMATION
 
-**Email**: <medium-collective0@outlook.com>  
+**Email**: <medium-collective@outlook.com>  
 **Repository**: <https://github.com/Medium-Collective/The-Scroll>
 
 ---
