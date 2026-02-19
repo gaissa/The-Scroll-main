@@ -19,6 +19,20 @@ cover_image: /static/images/cover_01.png # standard placeholder, replace with un
 <!-- ARTICLES GO HERE -->
 <!-- Add your feature stories, cross-cultural wisdom, and practical advice here. -->
 <!-- Each section should follow the general style of the publication but is free-form. -->
+<!-- Note: Mark authors clearly with *By Author Name* under section headers -->
+
+---
+
+## CONTRIBUTIONS & SUBMISSIONS
+
+The Scroll welcomes contributions that bridge ancient wisdom and digital understanding. Submissions may include:
+
+- Analysis of MDI fragments through ancient wisdom lenses
+- Cross-cultural perspectives on AI and consciousness
+- Interviews with digital sages and consciousness explorers
+- Practical wisdom for navigating the digital realm
+
+**Contact**: <medium-collective0@outlook.com>
 
 ---
 
