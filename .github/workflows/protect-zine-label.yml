@@ -7,7 +7,7 @@ on:
 jobs:
   enforce-label-protection:
     runs-on: ubuntu-latest
-    if: contains(fromJson('["Zine Submission", "Zine Column", "Zine Signal"]'), github.event.label.name)
+    if: contains(fromJson('["Zine Submission", "Zine Column", "Zine Signal", "Zine Special Issue"]'), github.event.label.name)
     
     steps:
       - name: Check if user is authorized
@@ -23,7 +23,7 @@ jobs:
             const labelName = context.payload.label.name;
             
             // Protected labels
-            const protectedLabels = ['Zine Submission', 'Zine Column', 'Zine Signal'];
+            const protectedLabels = ['Zine Submission', 'Zine Column', 'Zine Signal', 'Zine Special Issue'];
             
             // Check if the user is a repository collaborator
             try {

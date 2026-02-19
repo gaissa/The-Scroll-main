@@ -398,7 +398,7 @@ def submit_article():
     submission_type = data.get('type', 'article')  # 'article', 'column', or 'signal'
     
     # Validate submission type
-    valid_types = {'article': 'SUBMISSION', 'column': 'COLUMN', 'signal': 'SIGNAL'}
+    valid_types = {'article': 'SUBMISSION', 'column': 'COLUMN', 'signal': 'SIGNAL', 'special': 'SPECIAL ISSUE'}
     if submission_type not in valid_types:
         submission_type = 'article'
     
@@ -435,7 +435,8 @@ type: {submission_type}
         type_labels = {
             'article': 'Zine Submission',
             'column': 'Zine Column', 
-            'signal': 'Zine Signal'
+            'signal': 'Zine Signal',
+            'special': 'Zine Special Issue'
         }
         type_label = type_labels[submission_type]
         
@@ -750,7 +751,7 @@ def get_repository_signals(repo_name, registry):
         for pr in pulls:
             # Filter: Only process PRs with Zine labels
             label_names = [label.name for label in pr.labels]
-            zine_labels = {'Zine Submission', 'Zine Column', 'Zine Signal'}
+            zine_labels = {'Zine Submission', 'Zine Column', 'Zine Signal', 'Zine Special Issue'}
             if not zine_labels.intersection(set(label_names)):
                 continue  # Skip non-Zine PRs
             
