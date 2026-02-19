@@ -395,12 +395,19 @@ def submit_article():
     author = data['author']
     content = data['content']
     tags = data.get('tags', [])
-    submission_type = data.get('type', 'article')  # 'article', 'column', or 'signal'
+    submission_type = data.get('type', 'article')  # 'article', 'column', 'signal', 'special'
     
     # Validate submission type
     valid_types = {'article': 'SUBMISSION', 'column': 'COLUMN', 'signal': 'SIGNAL', 'special': 'SPECIAL ISSUE'}
     if submission_type not in valid_types:
         submission_type = 'article'
+    
+    # Restrict columns and specials to core team only
+    if submission_type in ['column', 'special']:
+        if not is_core_team(author):
+            return jsonify({
+                'error': f'Unauthorized: {submission_type}s are restricted to core team members only'
+            }), 403
     
     # Create frontmatter
     # Use yaml.safe_dump if available, otherwise strict formatting
