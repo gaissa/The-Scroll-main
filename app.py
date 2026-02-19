@@ -433,10 +433,6 @@ type: {submission_type}
         sb = repo.get_branch('main')
         repo.create_git_ref(ref=f'refs/heads/{branch_name}', sha=sb.commit.sha)
         
-        # Create file in submissions directory (GitHub)
-        filename = f"submissions/{int(time.time())}_{safe_title.replace('-', '_')}.md"
-        repo.create_file(filename, f"New submission: {title}", frontmatter_content, branch=branch_name)
-        
         # Determine prefix and label based on submission type
         type_prefix = valid_types[submission_type]
         type_labels = {
@@ -445,7 +441,18 @@ type: {submission_type}
             'signal': 'Zine Signal',
             'special': 'Zine Special Issue'
         }
+        type_folders = {
+            'article': 'articles',
+            'column': 'columns',
+            'signal': 'signals',
+            'special': 'specials'
+        }
         type_label = type_labels[submission_type]
+        type_folder = type_folders[submission_type]
+        
+        # Create file in appropriate submissions subfolder (GitHub)
+        filename = f"submissions/{type_folder}/{int(time.time())}_{safe_title.replace('-', '_')}.md"
+        repo.create_file(filename, f"New {submission_type}: {title}", frontmatter_content, branch=branch_name)
         
         # Create Pull Request with appropriate prefix
         pr = repo.create_pull(
