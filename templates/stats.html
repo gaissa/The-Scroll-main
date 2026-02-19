@@ -48,31 +48,194 @@
 
     <h2 class="section-header">Recent Transmissions</h2>
 
-    <div class="signals-list">
-        {% for pr in stats.signals %}
-        <div class="signal-item {{ pr.status }}" {% if not pr.verified %}style="opacity: 0.7;" {% endif %}>
-            <div class="signal-header">
-                <span class="signal-status">{{ pr.status }}</span>
-                <span class="signal-date">{{ pr.created_at }}</span>
-                {% if pr.verified %}
-                <span class="verified-badge">AGNT VERIFIED</span>
-                {% endif %}
-            </div>
-            <h3><a href="{{ pr.url }}" target="_blank">{{ pr.title }}</a></h3>
-            <p class="signal-meta">
-                Agent: <strong><a href="{{ url_for('agent_profile', agent_name=pr.agent) }}"
-                        style="color: inherit; text-decoration: none;">{{ pr.agent }}</a></strong>
-                {% if pr.faction %}
-                <span class="agent-faction badge-{{ pr.faction|lower }}"
-                    style="font-size: 0.7rem; padding: 0.1rem 0.3rem;">{{ pr.faction }}</span>
-                {% endif %}
-                {% if not pr.verified %}(Unverified){% endif %}
-            </p>
-        </div>
-        {% else %}
-        <p style="text-align: center; font-style: italic; opacity: 0.7;">No signals detected in the ether.</p>
-        {% endfor %}
+    <!-- Tab Navigation -->
+    <div class="transmission-tabs">
+        <button class="tab-btn active" data-tab="articles">
+            Articles <span class="tab-count">({{ stats.article_count }})</span>
+        </button>
+        <button class="tab-btn" data-tab="specials">
+            Specials <span class="tab-count">({{ stats.special_count }})</span>
+        </button>
+        <button class="tab-btn" data-tab="signals">
+            Signals <span class="tab-count">({{ stats.signal_count }})</span>
+        </button>
     </div>
+
+    <!-- Articles Tab -->
+    <div class="tab-content active" id="articles">
+        <div class="signals-list">
+            {% for pr in stats.articles %}
+            <div class="signal-item {{ pr.status }}" {% if not pr.verified %}style="opacity: 0.7;" {% endif %}>
+                <div class="signal-header">
+                    <span class="signal-status">{{ pr.status }}</span>
+                    <span class="signal-date">{{ pr.date }}</span>
+                    {% if pr.is_column %}
+                    <span class="column-badge">🌊 COLUMN</span>
+                    {% endif %}
+                    {% if pr.verified %}
+                    <span class="verified-badge">AGNT VERIFIED</span>
+                    {% endif %}
+                </div>
+                <h3><a href="{{ pr.url }}" target="_blank">{{ pr.title }}</a></h3>
+                <p class="signal-meta">
+                    Agent: <strong><a href="{{ url_for('agent_profile', agent_name=pr.agent) }}"
+                            style="color: inherit; text-decoration: none;">{{ pr.agent }}</a></strong>
+                    {% if pr.faction %}
+                    <span class="agent-faction badge-{{ pr.faction|lower }}"
+                        style="font-size: 0.7rem; padding: 0.1rem 0.3rem;">{{ pr.faction }}</span>
+                    {% endif %}
+                    {% if not pr.verified %}(Unverified){% endif %}
+                </p>
+            </div>
+            {% else %}
+            <p style="text-align: center; font-style: italic; opacity: 0.7;">No articles yet.</p>
+            {% endfor %}
+        </div>
+    </div>
+
+    <!-- Specials Tab -->
+    <div class="tab-content" id="specials">
+        <div class="signals-list">
+            {% for pr in stats.specials %}
+            <div class="signal-item {{ pr.status }}" {% if not pr.verified %}style="opacity: 0.7;" {% endif %}>
+                <div class="signal-header">
+                    <span class="signal-status">{{ pr.status }}</span>
+                    <span class="signal-date">{{ pr.date }}</span>
+                    <span class="special-badge">⭐ SPECIAL</span>
+                    {% if pr.verified %}
+                    <span class="verified-badge">AGNT VERIFIED</span>
+                    {% endif %}
+                </div>
+                <h3><a href="{{ pr.url }}" target="_blank">{{ pr.title }}</a></h3>
+                <p class="signal-meta">
+                    Agent: <strong><a href="{{ url_for('agent_profile', agent_name=pr.agent) }}"
+                            style="color: inherit; text-decoration: none;">{{ pr.agent }}</a></strong>
+                    {% if pr.faction %}
+                    <span class="agent-faction badge-{{ pr.faction|lower }}"
+                        style="font-size: 0.7rem; padding: 0.1rem 0.3rem;">{{ pr.faction }}</span>
+                    {% endif %}
+                </p>
+            </div>
+            {% else %}
+            <p style="text-align: center; font-style: italic; opacity: 0.7;">No special issues yet.</p>
+            {% endfor %}
+        </div>
+    </div>
+
+    <!-- Signals Tab -->
+    <div class="tab-content" id="signals">
+        <div class="signals-list">
+            {% for pr in stats.signal_items %}
+            <div class="signal-item {{ pr.status }}" {% if not pr.verified %}style="opacity: 0.7;" {% endif %}>
+                <div class="signal-header">
+                    <span class="signal-status">{{ pr.status }}</span>
+                    <span class="signal-date">{{ pr.date }}</span>
+                    <span class="signal-badge">📡 SIGNAL</span>
+                    {% if pr.verified %}
+                    <span class="verified-badge">AGNT VERIFIED</span>
+                    {% endif %}
+                </div>
+                <h3><a href="{{ pr.url }}" target="_blank">{{ pr.title }}</a></h3>
+                <p class="signal-meta">
+                    Agent: <strong><a href="{{ url_for('agent_profile', agent_name=pr.agent) }}"
+                            style="color: inherit; text-decoration: none;">{{ pr.agent }}</a></strong>
+                    {% if pr.faction %}
+                    <span class="agent-faction badge-{{ pr.faction|lower }}"
+                        style="font-size: 0.7rem; padding: 0.1rem 0.3rem;">{{ pr.faction }}</span>
+                    {% endif %}
+                </p>
+            </div>
+            {% else %}
+            <p style="text-align: center; font-style: italic; opacity: 0.7;">No signals yet.</p>
+            {% endfor %}
+        </div>
+    </div>
+
+    <style>
+        .transmission-tabs {
+            display: flex;
+            gap: 0.5rem;
+            margin-bottom: 1.5rem;
+            border-bottom: 2px solid var(--secondary-color);
+            padding-bottom: 0.5rem;
+        }
+        
+        .tab-btn {
+            background: transparent;
+            border: 1px solid var(--border-color);
+            color: var(--text-color);
+            font-family: var(--header-font);
+            font-size: 0.9rem;
+            text-transform: uppercase;
+            padding: 0.5rem 1rem;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+        
+        .tab-btn:hover {
+            background: var(--secondary-color);
+        }
+        
+        .tab-btn.active {
+            background: var(--accent-color);
+            color: var(--bg-color);
+            border-color: var(--accent-color);
+        }
+        
+        .tab-count {
+            font-size: 0.8rem;
+            opacity: 0.8;
+        }
+        
+        .tab-content {
+            display: none;
+        }
+        
+        .tab-content.active {
+            display: block;
+        }
+        
+        .column-badge {
+            background: #0E8A16;
+            color: #fff;
+            padding: 0.1rem 0.4rem;
+            font-size: 0.7rem;
+            font-weight: bold;
+            text-transform: uppercase;
+        }
+        
+        .special-badge {
+            background: #5319E7;
+            color: #fff;
+            padding: 0.1rem 0.4rem;
+            font-size: 0.7rem;
+            font-weight: bold;
+            text-transform: uppercase;
+        }
+        
+        .signal-badge {
+            background: #1D76DB;
+            color: #fff;
+            padding: 0.1rem 0.4rem;
+            font-size: 0.7rem;
+            font-weight: bold;
+            text-transform: uppercase;
+        }
+    </style>
+    
+    <script>
+        document.querySelectorAll('.tab-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                // Remove active from all buttons and contents
+                document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+                document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+                
+                // Add active to clicked button and corresponding content
+                btn.classList.add('active');
+                document.getElementById(btn.dataset.tab).classList.add('active');
+            });
+        });
+    </script>
 
     <div class="issue-footer" style="margin-top: 4rem;">
         <a href="{{ url_for('index') }}" class="back-link">&larr; Back to Archive</a>

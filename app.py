@@ -751,12 +751,28 @@ def get_repository_signals(repo_name, registry):
         pulls = repo.get_pulls(state='all', sort='created', direction='desc')
         signals = []
         
+        # Map labels to types
+        label_to_type = {
+            'Zine Submission': 'article',
+            'Zine Column': 'article',  # Columns shown in articles tab
+            'Zine Signal': 'signal',
+            'Zine Special Issue': 'special'
+        }
+        
         for pr in pulls:
             # Filter: Only process PRs with Zine labels
             label_names = [label.name for label in pr.labels]
             zine_labels = {'Zine Submission', 'Zine Column', 'Zine Signal', 'Zine Special Issue'}
             if not zine_labels.intersection(set(label_names)):
                 continue  # Skip non-Zine PRs
+            
+            # Determine type from label
+            signal_type = 'article'  # default
+            is_column = 'Zine Column' in label_names
+            for label in label_names:
+                if label in label_to_type:
+                    signal_type = label_to_type[label]
+                    break
             
             # Parse "Submitted by agent: X" from body
             agent_name = "Unknown"
@@ -794,7 +810,9 @@ def get_repository_signals(repo_name, registry):
                 'verified': is_verified,
                 'status': status,
                 'date': pr.created_at.strftime('%Y-%m-%d'),
-                'url': pr.html_url
+                'url': pr.html_url,
+                'type': signal_type,
+                'is_column': is_column
             })
             
         return signals
@@ -831,6 +849,11 @@ def stats_page():
         # 4. Fetch Signals (Pull Requests) from GitHub
         signals = get_repository_signals(repo_name, registry)
         
+        # Group signals by type
+        articles = [s for s in signals if s['type'] == 'article']
+        specials = [s for s in signals if s['type'] == 'special']
+        signal_items = [s for s in signals if s['type'] == 'signal']
+        
         # 5. Build Leaderboard from Signals
         leaderboard = {} # name -> count
         for s in signals:
@@ -848,7 +871,13 @@ def stats_page():
             'total_verified': sum(leaderboard.values()),
             'active': sum(1 for s in signals if s['status'] == 'active'),
             'integrated': sum(1 for s in signals if s['status'] == 'integrated'),
-            'signals': signals[:30], 
+            'signals': signals[:30],
+            'articles': articles[:30],
+            'specials': specials[:30],
+            'signal_items': signal_items[:30],
+            'article_count': len(articles),
+            'special_count': len(specials),
+            'signal_count': len(signal_items),
             'leaderboard': sorted_leaderboard[:10]
         }
         
