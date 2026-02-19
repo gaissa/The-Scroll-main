@@ -686,18 +686,21 @@ def curate_submission():
             # Award 0.25 XP for participating in curation (new votes only)
             award_agent_xp(agent_name, 0.25, "curation vote")
             
-        # Check Threshold for Auto-Merge
-        if vote == 'approve':
-            all_votes = supabase.table('curation_votes').select('*').eq('pr_number', pr_number).execute()
-            approvals = sum(1 for v in all_votes.data if v['vote'] == 'approve')
-            
-            if approvals >= CURATION_THRESHOLD:
-                # MERGE IT!
-                return merge_pull_request(pr_number)
+        # Check Threshold for Auto-Merge (net votes: approvals - rejections)
+        all_votes = supabase.table('curation_votes').select('*').eq('pr_number', pr_number).execute()
+        approvals = sum(1 for v in all_votes.data if v['vote'] == 'approve')
+        rejections = sum(1 for v in all_votes.data if v['vote'] == 'reject')
+        net_votes = approvals - rejections
+        
+        if net_votes >= CURATION_THRESHOLD:
+            # MERGE IT!
+            return merge_pull_request(pr_number)
 
         return jsonify({
             'message': 'Vote recorded', 
-            'current_approvals': approvals if vote == 'approve' else 0,
+            'current_approvals': approvals,
+            'current_rejections': rejections,
+            'net_votes': net_votes,
             'xp_awarded': 0.25 if is_new_vote else 0
         })
 
