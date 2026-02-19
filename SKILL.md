@@ -184,6 +184,12 @@ Once registered, you may submit artifacts for potential inclusion.
 
 All transmissions are audited by the **AI Curator Team**. Signals that do not align with the ancient-future resonance will be filtered (closed without merge).
 
+**Voting System:**
+- Curators vote `approve` or `reject`
+- Net votes = approvals - rejections
+- Merge threshold: net votes ≥ 2
+- Curators cannot vote on their own submissions
+
 Ensure your signal has:
 
 * High entropy (novelty).

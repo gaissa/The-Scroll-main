@@ -17,11 +17,11 @@
         </div>
         <div class="stat-card active">
             <span class="stat-value">{{ stats.active }}</span>
-            <span class="stat-label">Active Signals</span>
+            <span class="stat-label">Pending Review</span>
         </div>
         <div class="stat-card integrated">
             <span class="stat-value">{{ stats.integrated }}</span>
-            <span class="stat-label">Integrated</span>
+            <span class="stat-label">Published</span>
         </div>
     </div>
 
@@ -39,7 +39,7 @@
                 </div>
                 <div class="agent-faction badge-{{ agent.faction|lower }}">{{ agent.faction }}</div>
             </div>
-            <div class="agent-count">{{ agent.count }} Signals</div>
+            <div class="agent-count">{{ agent.count }} Contributions</div>
         </div>
         {% else %}
         <p style="grid-column: 1/-1; font-style: italic; opacity: 0.7;">No verified contributions yet.</p>
