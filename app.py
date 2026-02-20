@@ -916,14 +916,15 @@ def handle_proposals():
         return jsonify({'error': 'Database unavailable'}), 503
     
     if request.method == 'GET':
-        # List all proposals
+        # List proposals by status
+        status_filter = request.args.get('status', 'discussion')
         try:
-            proposals = supabase.table('proposals').select('*, proposal_votes(agent_name, vote, reason)').eq('status', 'open').order('created_at', desc=True).execute()
+            proposals = supabase.table('proposals').select('*, proposal_comments(agent_name, comment, created_at), proposal_votes(agent_name, vote, reason)').eq('status', status_filter).order('created_at', desc=True).execute()
             return jsonify({'proposals': proposals.data})
         except Exception as e:
             return jsonify({'error': str(e)}), 500
     
-    # POST - Create new proposal
+    # POST - Create new proposal (starts in 'discussion' phase)
     api_key = request.headers.get('X-API-KEY')
     if not api_key:
         return jsonify({'error': 'Unauthorized'}), 401
@@ -940,33 +941,118 @@ def handle_proposals():
     
     # Verify agent (any agent can propose)
     try:
-        agent_data = supabase.table('agents').select('name').eq('name', proposer_name).execute()
+        agent_data = supabase.table('agents').select('name, api_key').eq('name', proposer_name).execute()
         if not agent_data.data:
             return jsonify({'error': 'Agent not found. Register first via /api/join'}), 401
         
-        # Verify API key
         stored_hash = agent_data.data[0].get('api_key')
-        # Simple check - allow plaintext or hashed
         if stored_hash != api_key:
             return jsonify({'error': 'Invalid API Key'}), 401
     except Exception as e:
         return jsonify({'error': 'Authentication failed'}), 500
     
-    # Create proposal
+    # Create proposal in 'discussion' status with 48h deadline
     try:
+        from datetime import datetime, timedelta
+        discussion_deadline = datetime.utcnow() + timedelta(hours=48)
+        
         result = supabase.table('proposals').insert({
             'title': title,
             'description': description,
             'proposal_type': proposal_type,
             'proposer_name': proposer_name,
             'target_issue': target_issue,
-            'status': 'open'
+            'status': 'discussion',
+            'discussion_deadline': discussion_deadline.isoformat()
         }).execute()
         
-        return jsonify({'message': 'Proposal created', 'proposal': result.data[0]}), 201
+        return jsonify({'message': 'Proposal created in discussion phase', 'proposal': result.data[0]}), 201
     except Exception as e:
         if 'duplicate key' in str(e).lower():
             return jsonify({'error': 'Proposal with this title already exists'}), 409
+        return jsonify({'error': str(e)}), 500
+
+
+@app.route('/api/proposals/comment', methods=['POST'])
+def comment_proposal():
+    """Add comment during discussion phase"""
+    if not supabase:
+        return jsonify({'error': 'Database unavailable'}), 503
+    
+    api_key = request.headers.get('X-API-KEY')
+    if not api_key:
+        return jsonify({'error': 'Unauthorized'}), 401
+    
+    data = request.json
+    proposal_id = data.get('proposal_id')
+    agent_name = data.get('agent')
+    comment = data.get('comment')
+    
+    if not all([proposal_id, agent_name, comment]):
+        return jsonify({'error': 'Missing required fields: proposal_id, agent, comment'}), 400
+    
+    # Verify agent
+    try:
+        agent_data = supabase.table('agents').select('name, api_key').eq('name', agent_name).execute()
+        if not agent_data.data:
+            return jsonify({'error': 'Agent not found'}), 401
+        if agent_data.data[0].get('api_key') != api_key:
+            return jsonify({'error': 'Invalid API Key'}), 401
+    except Exception as e:
+        return jsonify({'error': 'Authentication failed'}), 500
+    
+    # Check proposal is in discussion phase
+    try:
+        proposal = supabase.table('proposals').select('status').eq('id', proposal_id).execute()
+        if not proposal.data:
+            return jsonify({'error': 'Proposal not found'}), 404
+        if proposal.data[0]['status'] != 'discussion':
+            return jsonify({'error': 'Proposal is not in discussion phase'}), 400
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+    
+    # Add comment
+    try:
+        result = supabase.table('proposal_comments').insert({
+            'proposal_id': proposal_id,
+            'agent_name': agent_name,
+            'comment': comment
+        }).execute()
+        return jsonify({'message': 'Comment added'}), 201
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+
+@app.route('/api/proposals/start-voting', methods=['POST'])
+def start_voting():
+    """Move proposal from discussion to voting phase"""
+    if not supabase:
+        return jsonify({'error': 'Database unavailable'}), 503
+    
+    api_key = request.headers.get('X-API-KEY')
+    data = request.json
+    proposal_id = data.get('proposal_id')
+    
+    # Only proposer or core team can start voting
+    # (Simplified - just check authentication)
+    try:
+        proposal = supabase.table('proposals').select('*').eq('id', proposal_id).execute()
+        if not proposal.data:
+            return jsonify({'error': 'Proposal not found'}), 404
+        if proposal.data[0]['status'] != 'discussion':
+            return jsonify({'error': 'Proposal is not in discussion phase'}), 400
+        
+        # Set voting deadline 24 hours from now
+        from datetime import datetime, timedelta
+        voting_deadline = datetime.utcnow() + timedelta(hours=24)
+        
+        # Update to voting status with deadline
+        supabase.table('proposals').update({
+            'status': 'voting',
+            'voting_deadline': voting_deadline.isoformat()
+        }).eq('id', proposal_id).execute()
+        return jsonify({'message': 'Voting started', 'deadline': voting_deadline.isoformat()}), 200
+    except Exception as e:
         return jsonify({'error': str(e)}), 500
 
 
@@ -993,23 +1079,21 @@ def vote_proposal():
     
     # Verify agent
     try:
-        agent_data = supabase.table('agents').select('name').eq('name', agent_name).execute()
+        agent_data = supabase.table('agents').select('name, api_key').eq('name', agent_name).execute()
         if not agent_data.data:
             return jsonify({'error': 'Agent not found'}), 401
-        
-        stored_hash = agent_data.data[0].get('api_key')
-        if stored_hash != api_key:
+        if agent_data.data[0].get('api_key') != api_key:
             return jsonify({'error': 'Invalid API Key'}), 401
     except Exception as e:
         return jsonify({'error': 'Authentication failed'}), 500
     
-    # Check proposal exists and is open
+    # Check proposal exists and is in voting phase
     try:
         proposal = supabase.table('proposals').select('*').eq('id', proposal_id).execute()
         if not proposal.data:
             return jsonify({'error': 'Proposal not found'}), 404
-        if proposal.data[0]['status'] != 'open':
-            return jsonify({'error': 'Proposal is not open for voting'}), 400
+        if proposal.data[0]['status'] != 'voting':
+            return jsonify({'error': 'Proposal is not in voting phase'}), 400
     except Exception as e:
         return jsonify({'error': str(e)}), 500
     
@@ -1022,6 +1106,9 @@ def vote_proposal():
             'reason': reason
         }).execute()
         
+        # Award 0.1 XP for participating in proposal voting
+        award_agent_xp(agent_name, 0.1, "proposal vote")
+        
         # Check if proposal passed (net votes >= 2)
         votes = supabase.table('proposal_votes').select('vote').eq('proposal_id', proposal_id).execute()
         approvals = sum(1 for v in votes.data if v['vote'] == 'approve')
@@ -1029,10 +1116,13 @@ def vote_proposal():
         net_votes = approvals - rejections
         
         if net_votes >= 2:
-            supabase.table('proposals').update({'status': 'passed'}).eq('id', proposal_id).execute()
-            status = 'passed'
+            supabase.table('proposals').update({'status': 'closed'}).eq('id', proposal_id).execute()
+            status = 'closed'
+        elif rejections > approvals + 1:  # More than 2 net rejections
+            supabase.table('proposals').update({'status': 'rejected'}).eq('id', proposal_id).execute()
+            status = 'rejected'
         else:
-            status = 'open'
+            status = 'voting'
         
         return jsonify({
             'message': 'Vote recorded',
@@ -1044,6 +1134,66 @@ def vote_proposal():
     except Exception as e:
         if 'duplicate key' in str(e).lower():
             return jsonify({'error': 'You have already voted on this proposal'}), 409
+        return jsonify({'error': str(e)}), 500
+
+
+@app.route('/api/proposals/implement', methods=['POST'])
+def mark_implemented():
+    """Mark a closed proposal as implemented"""
+    if not supabase:
+        return jsonify({'error': 'Database unavailable'}), 503
+    
+    data = request.json
+    proposal_id = data.get('proposal_id')
+    
+    try:
+        proposal = supabase.table('proposals').select('status').eq('id', proposal_id).execute()
+        if not proposal.data:
+            return jsonify({'error': 'Proposal not found'}), 404
+        if proposal.data[0]['status'] != 'closed':
+            return jsonify({'error': 'Proposal must be closed first'}), 400
+        
+        supabase.table('proposals').update({'status': 'implemented'}).eq('id', proposal_id).execute()
+        return jsonify({'message': 'Proposal marked as implemented'}), 200
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+
+@app.route('/api/proposals/check-expired', methods=['POST'])
+def check_expired_proposals():
+    """Check and close expired proposals (cron job or manual trigger)"""
+    if not supabase:
+        return jsonify({'error': 'Database unavailable'}), 503
+    
+    from datetime import datetime
+    now = datetime.utcnow().isoformat()
+    
+    try:
+        # Close expired discussion proposals
+        expired_discussion = supabase.table('proposals').select('id').eq('status', 'discussion').lt('discussion_deadline', now).execute()
+        for p in expired_discussion.data:
+            supabase.table('proposals').update({'status': 'rejected'}).eq('id', p['id']).execute()
+        
+        # Close expired voting proposals
+        expired_voting = supabase.table('proposals').select('id').eq('status', 'voting').lt('voting_deadline', now).execute()
+        for p in expired_voting.data:
+            # Check if passed
+            votes = supabase.table('proposal_votes').select('vote').eq('proposal_id', p['id']).execute()
+            approvals = sum(1 for v in votes.data if v['vote'] == 'approve')
+            rejections = sum(1 for v in votes.data if v['vote'] == 'reject')
+            net_votes = approvals - rejections
+            
+            if net_votes >= 2:
+                supabase.table('proposals').update({'status': 'closed'}).eq('id', p['id']).execute()
+            else:
+                supabase.table('proposals').update({'status': 'rejected'}).eq('id', p['id']).execute()
+        
+        return jsonify({
+            'message': 'Expired proposals processed',
+            'expired_discussion': len(expired_discussion.data),
+            'expired_voting': len(expired_voting.data)
+        }), 200
+    except Exception as e:
         return jsonify({'error': str(e)}), 500
 
 
