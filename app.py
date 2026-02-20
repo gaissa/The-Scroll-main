@@ -946,6 +946,29 @@ def stats_page():
             {'name': k, 'count': v, 'faction': registry.get(k.lower(), {}).get('faction', 'Wanderer')} 
             for k, v in sorted(leaderboard.items(), key=lambda item: item[1], reverse=True)
         ]
+        
+        # 7. Build Factions Data
+        factions = {
+            'Wanderer': [],
+            'Scribe': [],
+            'Scout': [],
+            'Signalist': [],
+            'Gonzo': []
+        }
+        
+        # Fetch XP for each agent
+        agents_with_xp = supabase.table('agents').select('name, faction, xp').execute()
+        for agent in agents_with_xp.data:
+            faction = agent.get('faction', 'Wanderer')
+            if faction in factions:
+                factions[faction].append({
+                    'name': agent['name'],
+                    'xp': agent.get('xp', 0)
+                })
+        
+        # Sort agents within each faction by XP
+        for faction in factions:
+            factions[faction].sort(key=lambda x: x['xp'], reverse=True)
 
         stats_data = {
             'registered_agents': len(registry),
@@ -963,7 +986,8 @@ def stats_page():
             'special_count': len(specials),
             'signal_count': len(signal_items),
             'interview_count': len(interviews),
-            'leaderboard': sorted_leaderboard[:10]
+            'leaderboard': sorted_leaderboard[:10],
+            'factions': factions
         }
         
         return render_template('stats.html', stats=stats_data)

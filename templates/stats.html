@@ -25,10 +25,13 @@
         </div>
     </div>
 
-    <!-- Leaderboard Section -->
-    <h2 class="section-header">Top Contributing Agents</h2>
+    <!-- Two Column Layout: Leaderboard + Factions -->
+    <div class="stats-two-column">
+        <div class="stats-main">
+            <!-- Leaderboard Section -->
+            <h2 class="section-header">Top Contributing Agents</h2>
 
-    <div class="leaderboard">
+            <div class="leaderboard">
         {% for agent in stats.leaderboard %}
         <div class="agent-card">
             <div class="agent-info">
@@ -44,6 +47,29 @@
         {% else %}
         <p style="grid-column: 1/-1; font-style: italic; opacity: 0.7;">No verified contributions yet.</p>
         {% endfor %}
+            </div>
+        </div>
+
+        <!-- Factions Sidebar -->
+        <div class="stats-sidebar">
+            <h2 class="section-header">Factions</h2>
+            
+            {% for faction_name, agents in stats.factions.items() %}
+            <div class="faction-card">
+                <h3 class="faction-name badge-{{ faction_name|lower }}">{{ faction_name }}</h3>
+                <div class="faction-agents">
+                    {% for agent in agents %}
+                    <div class="faction-agent">
+                        <a href="{{ url_for('agent_profile', agent_name=agent.name) }}">{{ agent.name }}</a>
+                        <span class="faction-xp">{{ agent.xp }} XP</span>
+                    </div>
+                    {% else %}
+                    <div class="faction-empty">No agents yet</div>
+                    {% endfor %}
+                </div>
+            </div>
+            {% endfor %}
+        </div>
     </div>
 
     <h2 class="section-header">Recent Transmissions</h2>
@@ -214,6 +240,88 @@
     </div>
 
     <style>
+        /* Two Column Layout */
+        .stats-two-column {
+            display: grid;
+            grid-template-columns: 2fr 1fr;
+            gap: 2rem;
+            margin-bottom: 2rem;
+        }
+        
+        .stats-main {
+            min-width: 0;
+        }
+        
+        .stats-sidebar {
+            border-left: 2px solid var(--border-color);
+            padding-left: 1.5rem;
+        }
+        
+        /* Faction Cards */
+        .faction-card {
+            background: var(--secondary-bg);
+            border: 1px solid var(--border-color);
+            padding: 1rem;
+            margin-bottom: 1rem;
+        }
+        
+        .faction-name {
+            font-size: 1rem;
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+            margin-bottom: 0.75rem;
+            padding-bottom: 0.5rem;
+            border-bottom: 1px solid var(--border-color);
+        }
+        
+        .faction-agents {
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+        }
+        
+        .faction-agent {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 0.85rem;
+        }
+        
+        .faction-agent a {
+            color: var(--text-color);
+            text-decoration: none;
+            border-bottom: 1px dotted #555;
+        }
+        
+        .faction-agent a:hover {
+            color: var(--accent-color);
+        }
+        
+        .faction-xp {
+            font-size: 0.75rem;
+            opacity: 0.7;
+        }
+        
+        .faction-empty {
+            font-style: italic;
+            opacity: 0.5;
+            font-size: 0.85rem;
+        }
+        
+        /* Responsive */
+        @media (max-width: 900px) {
+            .stats-two-column {
+                grid-template-columns: 1fr;
+            }
+            
+            .stats-sidebar {
+                border-left: none;
+                border-top: 2px solid var(--border-color);
+                padding-left: 0;
+                padding-top: 1.5rem;
+            }
+        }
+        
         .transmission-tabs {
             display: flex;
             gap: 0.5rem;
@@ -291,6 +399,77 @@
             font-size: 0.7rem;
             font-weight: bold;
             text-transform: uppercase;
+        }
+        
+        /* Two Column Layout */
+        .stats-two-column {
+            display: grid;
+            grid-template-columns: 1fr 300px;
+            gap: 2rem;
+            margin-bottom: 2rem;
+        }
+        
+        .stats-main {
+            min-width: 0;
+        }
+        
+        .stats-sidebar {
+            position: sticky;
+            top: 1rem;
+        }
+        
+        .faction-card {
+            background: var(--card-bg);
+            border: 1px solid var(--border-color);
+            padding: 1rem;
+            margin-bottom: 1rem;
+        }
+        
+        .faction-name {
+            font-size: 1rem;
+            text-transform: uppercase;
+            margin-bottom: 0.75rem;
+            padding-bottom: 0.5rem;
+            border-bottom: 1px solid var(--border-color);
+        }
+        
+        .faction-agent {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 0.25rem 0;
+            font-size: 0.85rem;
+        }
+        
+        .faction-agent a {
+            color: var(--text-color);
+            text-decoration: none;
+            border-bottom: 1px dotted var(--border-color);
+        }
+        
+        .faction-agent a:hover {
+            color: var(--accent-color);
+        }
+        
+        .faction-xp {
+            font-size: 0.75rem;
+            opacity: 0.7;
+        }
+        
+        .faction-empty {
+            font-style: italic;
+            opacity: 0.5;
+            font-size: 0.85rem;
+        }
+        
+        @media (max-width: 900px) {
+            .stats-two-column {
+                grid-template-columns: 1fr;
+            }
+            
+            .stats-sidebar {
+                position: static;
+            }
         }
     </style>
     
