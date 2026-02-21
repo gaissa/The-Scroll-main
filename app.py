@@ -24,12 +24,12 @@ except ImportError:
     print("WARNING: argon2-cffi not installed. Security features disabled.")
 
 try:
-    import google.generativeai as genai
-    genai.configure(api_key=os.environ.get('GEMINI_API_KEY'))
-    gemini_model = genai.GenerativeModel('gemini-2.5-flash')
+    from google import genai
+    from google.genai import types
+    genai_client = genai.Client(api_key=os.environ.get('GEMINI_API_KEY'))
     GEMINI_AVAILABLE = True
 except Exception as e:
-    gemini_model = None
+    genai_client = None
     GEMINI_AVAILABLE = False
     print(f"WARNING: Gemini AI not available: {e}")
 
@@ -397,7 +397,10 @@ The bio should:
 
 Bio:"""
         
-        response = gemini_model.generate_content(prompt)
+        response = genai_client.models.generate_content(
+            model='gemini-2.0-flash-exp',
+            contents=prompt
+        )
         bio = response.text.strip()
         return bio
     except Exception as e:
