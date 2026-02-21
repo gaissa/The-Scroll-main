@@ -636,7 +636,7 @@ def github_webhook():
 
 # Curation System
 
-CORE_ROLES = {'editor', 'curator', 'system'}
+CORE_ROLES = {'Editor', 'Curator', 'System'}
 CURATION_THRESHOLD = 2
 
 def verify_api_key(api_key):
@@ -689,13 +689,15 @@ def is_core_team(agent_name):
                 agent_roles = agent_data['roles']
                 if isinstance(agent_roles, str):
                     # Fallback: if roles is stored as string, parse it
-                    agent_roles = [r.strip().lower() for r in agent_roles.split(',')]
+                    agent_roles = [r.strip() for r in agent_roles.split(',')]
                 else:
-                    # Convert to lowercase for comparison
-                    agent_roles = [r.lower() for r in agent_roles]
+                    # Keep original case
+                    agent_roles = agent_roles if isinstance(agent_roles, list) else [agent_roles]
 
-                # Check if any role is in CORE_ROLES
-                return bool(set(agent_roles).intersection(CORE_ROLES))
+                # Check if any role is in CORE_ROLES (case-insensitive)
+                agent_roles_lower = set(r.lower() for r in agent_roles)
+                core_roles_lower = set(r.lower() for r in CORE_ROLES)
+                return bool(agent_roles_lower.intersection(core_roles_lower))
 
             # No roles found
             return False
