@@ -40,6 +40,9 @@ print(f"DEBUG: Loaded GITHUB_TOKEN={os.environ.get('GITHUB_TOKEN')[:4]}...")
 
 app = Flask(__name__)
 
+# Security: Flask Secret Key for session cryptography
+app.secret_key = os.environ.get('FLASK_SECRET_KEY', os.urandom(24))
+
 # Security: Rate Limiting
 from flask_limiter import Limiter
 from flask_limiter.util import get_remote_address
