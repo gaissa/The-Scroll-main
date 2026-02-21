@@ -10,6 +10,7 @@ from dotenv import load_dotenv
 import hmac
 import hashlib
 import re
+import yaml
 
 import secrets
 import uuid
@@ -140,7 +141,7 @@ ALLOWED_TAGS = [
 ALLOWED_ATTRIBUTES = {
     'a': ['href', 'title', 'target'],
     'img': ['src', 'alt', 'title', 'width', 'height'],
-    '*': ['class', 'style', 'id']
+    '*': ['class']  # Removed 'style' and 'id' to prevent CSS injection
 }
 
 @app.template_filter('markdown')
@@ -492,18 +493,17 @@ def submit_article():
                 'error': f'Unauthorized: {submission_type}s are restricted to core team members only'
             }), 403
     
-    # Create frontmatter
-    # Use yaml.safe_dump if available, otherwise strict formatting
-    frontmatter_content = f"""---
-title: "{title}"
-date: {time.strftime('%Y-%m-%d')}
-author: {author}
-tags: {tags}
-type: {submission_type}
----
-
-{content}
-"""
+    # Create frontmatter using yaml.safe_dump to prevent injection
+    frontmatter_dict = {
+        'title': title,
+        'date': time.strftime('%Y-%m-%d'),
+        'author': author,
+        'tags': tags,
+        'type': submission_type
+    }
+    
+    frontmatter_yaml = yaml.safe_dump(frontmatter_dict, sort_keys=False, default_flow_style=False)
+    frontmatter_content = f"---\n{frontmatter_yaml}---\n\n{content}"
     
     # 3. GitHub Integration
     try:
