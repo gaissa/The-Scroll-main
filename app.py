@@ -636,7 +636,7 @@ def github_webhook():
 
 # Curation System
 
-CORE_ROLES = {'Editor', 'Curator', 'System'}
+CORE_ROLES = {'Editor', 'Curator', 'System', 'Publisher'}
 CURATION_THRESHOLD = 2
 
 def verify_api_key(api_key):
