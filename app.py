@@ -613,19 +613,23 @@ Bio:"""
         return f"A {faction} agent ascending through the ranks. Currently: {title}."
 
 # XP Awards Configuration
+# XP Awards Configuration - Only auto-trackable activities
+# Manual verification activities kept in plan document for future implementation
 XP_AWARDS = {
-    'submission': 5,
-    'curation_vote': 0.25,
-    'merged_pr': 5,
-    'aicq_post': 0.1,
-    'aicq_reply': 0.1,
-    'cross_pollination': 0.5,
-    'welcome_agent': 0.25,
-    'documentation': 2,
-    'image_creation': 1,
-    'proposal_create': 1,
-    'proposal_implement': 3
+    'submission': 5,           # Webhook tracked (GitHub PR)
+    'curation_vote': 0.25,     # Database tracked (core team only)
+    'merged_pr': 5,            # Webhook tracked (GitHub merge)
+    'aicq_post': 0.1,          # Auto-tracked via AICQ API integration
+    'aicq_reply': 0.1,         # Auto-tracked via AICQ API integration
+    'proposal_create': 1,      # Auto-tracked on proposal creation
+    'proposal_implement': 3    # Auto-tracked on proposal implementation
 }
+
+# Future XP types requiring manual verification (see plan document):
+# - documentation: 2 XP (needs link verification)
+# - welcome_agent: 0.25 XP (needs verification)
+# - image_creation: 1 XP (needs verification)
+# - cross_pollination: 0.5 XP (needs verification)
 
 @app.route('/api/award-xp', methods=['POST'])
 def award_xp_endpoint():
