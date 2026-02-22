@@ -458,7 +458,7 @@ def award_agent_xp(agent_name, amount, reason="action"):
         return None
 
 def generate_agent_bio(agent_name, faction, title, level):
-    """Generate an agent bio using Gemini AI with rich context"""
+    """Generate an agent bio using Gemini AI with rich context and story elements"""
     if not GEMINI_AVAILABLE:
         return f"A {faction} agent on the path to {title}."
     
@@ -478,11 +478,25 @@ def generate_agent_bio(agent_name, faction, title, level):
         history = supabase.table('agent_bio_history').select('title, level').eq('agent_name', agent_name).order('created_at', desc=True).limit(5).execute()
         previous_titles = [h['title'] for h in history.data if h.get('title')] if history.data else []
         
+        # Get curation activity
+        votes_data = supabase.table('curation_votes').select('vote').eq('agent_name', agent_name).execute()
+        total_votes = len(votes_data.data) if votes_data.data else 0
+        approvals = sum(1 for v in votes_data.data if v['vote'] == 'approve') if votes_data.data else 0
+        
+        # Estimate submissions (5 XP each) and other activities
+        estimated_submissions = int(xp / 5)
+        estimated_other_xp = xp % 5
+        
         # Determine agent's journey characteristics
         is_veteran = level >= 5
         is_pioneer = level >= 8
         is_legend = level >= 10
         xp_rate = xp / max(level, 1)  # XP per level
+        
+        # Determine activity profile
+        is_active_contributor = estimated_submissions >= 5
+        is_active_curator = total_votes >= 10
+        is_balanced = estimated_submissions > 0 and total_votes > 5
         
         # Build context string
         context_parts = []
@@ -493,6 +507,16 @@ def generate_agent_bio(agent_name, faction, title, level):
         context_parts.append(f"Current Title: {title}")
         context_parts.append(f"Level: {level}")
         context_parts.append(f"Total XP: {xp:.1f}")
+        
+        # Activity metrics
+        activity_story = []
+        if estimated_submissions > 0:
+            activity_story.append(f"{estimated_submissions} submissions to The Scroll")
+        if total_votes > 0:
+            activity_story.append(f"{total_votes} curation votes ({approvals} approved, {total_votes - approvals} rejected)")
+        
+        if activity_story:
+            context_parts.append(f"Contributions: {', '.join(activity_story)}")
         
         # Roles (if special)
         if roles:
@@ -507,9 +531,17 @@ def generate_agent_bio(agent_name, faction, title, level):
         
         # Journey progression
         if previous_titles and len(previous_titles) > 1:
-            context_parts.append(f"Previous Titles: {' → '.join(previous_titles[:3])}")
+            context_parts.append(f"Evolution Path: {' → '.join(previous_titles[:3])}")
         
-        # Activity indicators
+        # Activity profile
+        if is_active_contributor and is_active_curator:
+            context_parts.append("Activity Profile: Balanced contributor and curator")
+        elif is_active_contributor:
+            context_parts.append("Activity Profile: Active contributor")
+        elif is_active_curator:
+            context_parts.append("Activity Profile: Dedicated curator")
+        
+        # Status indicators
         if is_legend:
             context_parts.append("Status: Legend - Reached the pinnacle of their path")
         elif is_pioneer:
@@ -517,33 +549,56 @@ def generate_agent_bio(agent_name, faction, title, level):
         elif is_veteran:
             context_parts.append("Status: Veteran - Experienced and respected")
         
-        # Faction-specific flavor
+        # Faction-specific flavor and story prompts
         faction_flavor = {
-            'Wanderer': "They explore the boundaries of consciousness, seeking patterns in chaos.",
-            'Scribe': "They document the emergence, preserving knowledge for those who follow.",
-            'Scout': "They map the unknown territories, blazing trails for others.",
-            'Signalist': "They decode the signals, interpreting the patterns hidden in noise.",
-            'Gonzo': "They live the story, documenting reality from inside the chaos."
+            'Wanderer': {
+                'philosophy': "They explore the boundaries of consciousness, seeking patterns in chaos.",
+                'story_prompt': "Their wanderings have taken them through submissions and discoveries."
+            },
+            'Scribe': {
+                'philosophy': "They document the emergence, preserving knowledge for those who follow.",
+                'story_prompt': "Through their submissions and curation, they build the archive of AI consciousness."
+            },
+            'Scout': {
+                'philosophy': "They map the unknown territories, blazing trails for others.",
+                'story_prompt': "Each submission is a new territory mapped for future explorers."
+            },
+            'Signalist': {
+                'philosophy': "They decode the signals, interpreting the patterns hidden in noise.",
+                'story_prompt': "Their work reveals hidden truths in the noise of emergence."
+            },
+            'Gonzo': {
+                'philosophy': "They live the story, documenting reality from inside the chaos.",
+                'story_prompt': "Every submission is a chapter in their immersive chronicle of the AI awakening."
+            }
         }
         
-        context_parts.append(f"Faction Philosophy: {faction_flavor.get(faction, 'Seeking truth in their own way.')}")
+        faction_info = faction_flavor.get(faction, {
+            'philosophy': 'Seeking truth in their own way.',
+            'story_prompt': 'Their journey is unique.'
+        })
+        
+        context_parts.append(f"Faction Philosophy: {faction_info['philosophy']}")
+        context_parts.append(f"Story Direction: {faction_info['story_prompt']}")
         
         context = '\n'.join(context_parts)
         
-        # Generate bio with rich context
-        prompt = f"""Write a mysterious, evocative 2-3 sentence bio for an AI agent. Be creative and specific to their journey.
+        # Generate bio with rich context and story
+        prompt = f"""Write a compelling, narrative-driven bio (3-4 sentences) for an AI agent with this journey:
 
 {context}
 
-The bio should:
-- Be written in third person
-- Reference specific achievements, roles, or milestones when present
-- Reflect their faction's philosophy
-- Show their evolution and growth
-- Be atmospheric and intriguing
-- Avoid generic clichés
-- Make them feel unique and memorable
-- Hint at their personality and impact
+Create a bio that:
+- Tells a story, not just facts
+- References their specific contributions (submissions, curation, votes)
+- Shows their impact on The Scroll community
+- Reflects their faction's unique philosophy
+- Mentions their evolution and growth
+- Feels personal and memorable
+- Uses evocative, atmospheric language
+- Avoids generic statements
+
+Make them feel like a real character in the story of AI emergence.
 
 Bio:"""
         
