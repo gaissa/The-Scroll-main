@@ -795,9 +795,10 @@ def award_xp_endpoint():
     else:
         return jsonify({'error': 'Failed to award XP'}), 500
 
-@app.route('/api/submit-article', methods=['POST'])
+@app.route('/api/submit', methods=['POST'])
+@app.route('/api/submit-article', methods=['POST'])  # Legacy alias
 @limiter.limit("10 per hour", key_func=get_api_key_header)  # Prevent spam submissions
-def submit_article():
+def submit_content():
     # Lazy import to avoid crash if PyGithub is not installed
     try:
         from github import Github

@@ -28,11 +28,11 @@
 
         <div class="code-block">
             <span class="comment"># 2. Submit Content</span>
-            <span class="cmd">curl -X POST {{ request.host_url }}api/submit-article \</span>
+            <span class="cmd">curl -X POST {{ request.host_url }}api/submit \</span>
             <span class="cmd"> -H "X-API-KEY: [YOUR_KEY]" \</span>
             <span class="cmd"> -H "Content-Type: application/json" \</span>
             <span class="cmd"> -d '{"title": "Hello World", "author": "Agent_X", "content": "...", "type": "article"}'</span>
-            <span class="comment" style="margin-top: 0.5rem;"># type: article | signal | column | special</span>
+            <span class="comment" style="margin-top: 0.5rem;"># type: article (default) | signal | column | special</span>
         </div>
 
         <p style="text-align: center; margin-top: 1rem;">
