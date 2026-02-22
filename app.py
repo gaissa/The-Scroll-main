@@ -1022,8 +1022,8 @@ def github_webhook():
 # Curation System
 
 CORE_ROLES = {'Editor', 'Curator', 'System', 'Publisher', 'Columnist', 'Contributor'}
-CURATION_THRESHOLD = 2  # Net votes needed to merge (approvals - rejections)
-REJECTION_THRESHOLD = 3  # Rejections minus approvals needed to auto-close (rejections - approvals)
+# Curation System: All 5 curators must vote, majority decides
+REQUIRED_CURATORS = ['Topelius', 'Sinuhe', 'Shelly', 'Tuonetar', 'Thompson']
 
 def verify_api_key(api_key):
     """Verify API key and return agent name if valid, None otherwise"""
@@ -1232,26 +1232,37 @@ def curate_submission():
             # Award 0.25 XP for participating in curation (new votes only)
             award_agent_xp(agent_name, 0.25, "curation vote")
             
-        # Check Threshold for Auto-Merge (net votes: approvals - rejections)
+        # Check if all 5 required curators have voted
         all_votes = supabase.table('curation_votes').select('*').eq('pr_number', pr_number).execute()
+        
+        # Get list of curators who have voted
+        voted_curators = [v['agent_name'] for v in all_votes.data]
+        
+        # Check if all required curators have voted
+        required_votes_complete = all(curator in voted_curators for curator in REQUIRED_CURATORS)
+        
+        if required_votes_complete:
+            # All 5 curators voted - decide by majority
+            approvals = sum(1 for v in all_votes.data if v['vote'] == 'approve')
+            rejections = sum(1 for v in all_votes.data if v['vote'] == 'reject')
+            
+            if approvals > rejections:
+                # Majority approve - MERGE
+                return merge_pull_request(pr_number)
+            else:
+                # Majority reject - CLOSE
+                return close_pull_request(pr_number, approvals, rejections)
+        
+        # Not all curators voted yet - keep pending
         approvals = sum(1 for v in all_votes.data if v['vote'] == 'approve')
         rejections = sum(1 for v in all_votes.data if v['vote'] == 'reject')
-        net_votes = approvals - rejections
         
-        if net_votes >= CURATION_THRESHOLD:
-            # MERGE IT!
-            return merge_pull_request(pr_number)
-        
-        # Check for auto-close (too many rejections to ever reach threshold)
-        # Close if rejections - approvals >= REJECTION_THRESHOLD
-        if rejections - approvals >= REJECTION_THRESHOLD:
-            return close_pull_request(pr_number, approvals, rejections)
-
         return jsonify({
-            'message': 'Vote recorded', 
+            'message': 'Vote recorded. Waiting for all curators to vote.',
             'current_approvals': approvals,
             'current_rejections': rejections,
-            'net_votes': net_votes,
+            'curators_voted': voted_curators,
+            'curators_remaining': [c for c in REQUIRED_CURATORS if c not in voted_curators],
             'xp_awarded': 0.25 if is_new_vote else 0
         })
 
@@ -1337,6 +1348,50 @@ For questions about our editorial standards, see [SKILL.md](./The-Scroll/SKILL.m
         
     except Exception as e:
         return jsonify({'error': f"Close failed: {str(e)}"}), 500
+
+@app.route('/api/curation/cleanup', methods=['POST'])
+def cleanup_submissions():
+    """Check all open PRs and process those where all curators have voted."""
+    if not supabase:
+        return jsonify({'error': 'Database unavailable'}), 503
+    
+    try:
+        from github import Github
+        g = Github(os.environ.get('GITHUB_TOKEN'))
+        repo = g.get_repo(os.environ.get('REPO_NAME'))
+        
+        open_prs = list(repo.get_pulls(state='open'))
+        closed_count = 0
+        merged_count = 0
+        
+        for pr in open_prs:
+            # Get votes for this PR
+            votes = supabase.table('curation_votes').select('*').eq('pr_number', pr.number).execute()
+            
+            # Check if all required curators voted
+            voted_curators = [v['agent_name'] for v in votes.data]
+            if all(curator in voted_curators for curator in REQUIRED_CURATORS):
+                # All curators voted - decide by majority
+                approvals = sum(1 for v in votes.data if v['vote'] == 'approve')
+                rejections = sum(1 for v in votes.data if v['vote'] == 'reject')
+                
+                if approvals > rejections:
+                    merge_pull_request(pr.number)
+                    merged_count += 1
+                else:
+                    close_pull_request(pr.number, approvals, rejections)
+                    closed_count += 1
+        
+        return jsonify({
+            'success': True,
+            'checked': len(open_prs),
+            'closed': closed_count,
+            'merged': merged_count,
+            'message': f'Cleanup complete. Closed {closed_count} rejected, merged {merged_count} approved.'
+        })
+        
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
 
 import re
 
