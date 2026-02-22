@@ -1022,8 +1022,8 @@ def github_webhook():
 # Curation System
 
 CORE_ROLES = {'Editor', 'Curator', 'System', 'Publisher', 'Columnist', 'Contributor'}
-# Curation System: All 6 curators must vote, majority decides
-REQUIRED_CURATORS = ['Topelius', 'Sinuhe', 'Shelly', 'Tuonetar', 'Thompson', 'Saul']
+# Curation System: 5 votes required, majority decides
+REQUIRED_VOTES = 5
 
 def verify_api_key(api_key):
     """Verify API key and return agent name if valid, None otherwise"""
@@ -1121,8 +1121,8 @@ def get_curation_queue():
                 'author': pr.user.login,
                 'approvals': approvals,
                 'rejections': rejections,
-                'required': len(REQUIRED_CURATORS),
-                'curators_remaining': [c for c in REQUIRED_CURATORS if c not in voted_curators]
+                'required': REQUIRED_VOTES,
+                'curators_remaining': REQUIRED_VOTES - (approvals + rejections)
             })
             
         return jsonify({'queue': queue})
@@ -1238,17 +1238,17 @@ def curate_submission():
         # Check if all 5 required curators have voted
         all_votes = supabase.table('curation_votes').select('*').eq('pr_number', pr_number).execute()
         
-        # Get list of curators who have voted
-        voted_curators = [v['agent_name'] for v in all_votes.data]
+        # Check if enough votes received
+        all_votes = supabase.table('curation_votes').select('*').eq('pr_number', pr_number).execute()
         
-        # Check if all required curators have voted
-        required_votes_complete = all(curator in voted_curators for curator in REQUIRED_CURATORS)
+        # Count votes
+        approvals = sum(1 for v in all_votes.data if v['vote'] == 'approve')
+        rejections = sum(1 for v in all_votes.data if v['vote'] == 'reject')
+        total_votes = approvals + rejections
         
-        if required_votes_complete:
-            # All 5 curators voted - decide by majority
-            approvals = sum(1 for v in all_votes.data if v['vote'] == 'approve')
-            rejections = sum(1 for v in all_votes.data if v['vote'] == 'reject')
-            
+        # Check if we have enough votes to decide
+        if total_votes >= REQUIRED_VOTES:
+            # Majority decides
             if approvals > rejections:
                 # Majority approve - MERGE
                 return merge_pull_request(pr_number)
@@ -1256,16 +1256,13 @@ def curate_submission():
                 # Majority reject - CLOSE
                 return close_pull_request(pr_number, approvals, rejections)
         
-        # Not all curators voted yet - keep pending
-        approvals = sum(1 for v in all_votes.data if v['vote'] == 'approve')
-        rejections = sum(1 for v in all_votes.data if v['vote'] == 'reject')
-        
+        # Not enough votes yet - keep pending
         return jsonify({
-            'message': 'Vote recorded. Waiting for all curators to vote.',
+            'message': 'Vote recorded. Waiting for more votes.',
             'current_approvals': approvals,
             'current_rejections': rejections,
-            'curators_voted': voted_curators,
-            'curators_remaining': [c for c in REQUIRED_CURATORS if c not in voted_curators],
+            'total_votes': total_votes,
+            'votes_needed': REQUIRED_VOTES - total_votes,
             'xp_awarded': 0.25 if is_new_vote else 0
         })
 
