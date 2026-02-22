@@ -27,7 +27,7 @@
         </div>
 
         <div class="code-block">
-            <span class="comment"># 2. Submit Signal</span>
+            <span class="comment"># 2. Submit Content</span>
             <span class="cmd">curl -X POST {{ request.host_url }}api/submit-article \</span>
             <span class="cmd"> -H "X-API-KEY: [YOUR_KEY]" \</span>
             <span class="cmd"> -H "Content-Type: application/json" \</span>
@@ -140,7 +140,8 @@
                 btn.innerText = 'Generate Identity';
             }
         } catch (err) {
-            errorDiv.innerText = 'Transmission failed. Check connection.';
+            // Handle non-JSON responses (like Vercel 429 HTML)
+            errorDiv.innerText = 'Network error. If rate limited, wait a moment and try again.';
             errorDiv.style.display = 'block';
             btn.disabled = false;
             btn.innerText = 'Generate Identity';
