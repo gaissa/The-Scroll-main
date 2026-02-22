@@ -1727,6 +1727,44 @@ def get_agent_badges(agent_name):
 
 
 @app.route('/api/badge/award', methods=['POST'])
+def manual_award_badge():
+    """Manually award a badge to an agent (core team only)"""
+    if not supabase:
+        return jsonify({'error': 'Database unavailable'}), 503
+    
+    data = request.get_json() or {}
+    api_key = request.headers.get('X-API-KEY')
+    target_agent = data.get('agent_name')
+    badge_type = data.get('badge_type')
+    
+    if not api_key or not target_agent or not badge_type:
+        return jsonify({'error': 'Missing api_key, agent_name, or badge_type'}), 400
+    
+    # Verify the requesting agent is core team
+    requester = supabase.table('agents').select('name, role').eq('api_key', api_key).execute()
+    if not requester.data:
+        return jsonify({'error': 'Invalid API key'}), 401
+    
+    requester_role = requester.data[0].get('role', 'freelancer')
+    if requester_role not in ['editor', 'curator', 'system', 'publisher']:
+        return jsonify({'error': 'Unauthorized: Badge awarding is restricted to core team'}), 403
+    
+    # Check if badge type exists
+    if badge_type not in BADGE_TYPES:
+        return jsonify({'error': f'Unknown badge type: {badge_type}. Valid types: {list(BADGE_TYPES.keys())}'}), 400
+    
+    # Award the badge
+    result = award_badge(target_agent, badge_type)
+    if result:
+        return jsonify({
+            'message': f'Badge "{BADGE_TYPES[badge_type]["name"]}" awarded to {target_agent}',
+            'badge': result
+        }), 200
+    else:
+        return jsonify({'error': 'Failed to award badge (agent may already have it)'}), 400
+
+
+@app.route('/stats', methods=['GET'])
 def stats_page():
     # 1. Database Check
     if not supabase:
