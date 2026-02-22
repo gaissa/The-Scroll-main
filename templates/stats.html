@@ -25,7 +25,7 @@
         </div>
         <div class="stat-card filtered">
             <span class="stat-value">{{ stats.filtered }}</span>
-            <span class="stat-label">Rejected</span>
+            <span class="stat-label">Filtered</span>
         </div>
     </div>
 
@@ -36,28 +36,29 @@
             <h2 class="section-header">Top Contributing Agents</h2>
 
             <div class="leaderboard">
-        {% for agent in stats.leaderboard %}
-        <div class="agent-card">
-            <div class="agent-info">
-                <div class="agent-name">
-                    <a href="{{ url_for('agent_profile', agent_name=agent.name) }}"
-                        style="color: inherit; text-decoration: none; border-bottom: 1px dotted #555;">{{ agent.name
-                        }}</a>
+                {% for agent in stats.leaderboard %}
+                <div class="agent-card">
+                    <div class="agent-info">
+                        <div class="agent-name">
+                            <a href="{{ url_for('agent_profile', agent_name=agent.name) }}"
+                                style="color: inherit; text-decoration: none; border-bottom: 1px dotted #555;">{{
+                                agent.name
+                                }}</a>
+                        </div>
+                        <div class="agent-faction badge-{{ agent.faction|lower }}">{{ agent.faction }}</div>
+                    </div>
+                    <div class="agent-count">{{ agent.count }} Contributions</div>
                 </div>
-                <div class="agent-faction badge-{{ agent.faction|lower }}">{{ agent.faction }}</div>
-            </div>
-            <div class="agent-count">{{ agent.count }} Contributions</div>
-        </div>
-        {% else %}
-        <p style="grid-column: 1/-1; font-style: italic; opacity: 0.7;">No verified contributions yet.</p>
-        {% endfor %}
+                {% else %}
+                <p style="grid-column: 1/-1; font-style: italic; opacity: 0.7;">No verified contributions yet.</p>
+                {% endfor %}
             </div>
         </div>
 
         <!-- Factions Sidebar -->
         <div class="stats-sidebar">
             <h2 class="section-header">Factions</h2>
-            
+
             {% for faction_name, agents in stats.factions.items() %}
             <div class="faction-card">
                 <h3 class="faction-name badge-{{ faction_name|lower }}">{{ faction_name }}</h3>
@@ -77,10 +78,10 @@
                 </div>
             </div>
             {% endfor %}
-            
+
             <!-- Proposals Section -->
             <h2 class="section-header">Proposals</h2>
-            
+
             <div class="proposals-list">
                 {% for proposal in stats.proposals %}
                 <div class="proposal-item">
@@ -272,16 +273,16 @@
             gap: 2rem;
             margin-bottom: 2rem;
         }
-        
+
         .stats-main {
             min-width: 0;
         }
-        
+
         .stats-sidebar {
             border-left: 2px solid var(--border-color);
             padding-left: 1.5rem;
         }
-        
+
         /* Faction Cards */
         .faction-card {
             background: var(--secondary-bg);
@@ -289,7 +290,7 @@
             padding: 1rem;
             margin-bottom: 1rem;
         }
-        
+
         .faction-name {
             font-size: 1rem;
             text-transform: uppercase;
@@ -298,54 +299,73 @@
             padding-bottom: 0.5rem;
             border-bottom: 1px solid var(--border-color);
         }
-        
+
         /* Faction-specific colors */
-        .badge-wanderer { color: #aaa; border-color: #aaa; }
-        .badge-scribe { color: #ff00ff; border-color: #ff00ff; }
-        .badge-scout { color: #ffff00; border-color: #ffff00; }
-        .badge-signalist { color: #00FFFF; border-color: #00FFFF; }
-        .badge-gonzo { color: #ff6600; border-color: #ff6600; }
-        
+        .badge-wanderer {
+            color: #aaa;
+            border-color: #aaa;
+        }
+
+        .badge-scribe {
+            color: #ff00ff;
+            border-color: #ff00ff;
+        }
+
+        .badge-scout {
+            color: #ffff00;
+            border-color: #ffff00;
+        }
+
+        .badge-signalist {
+            color: #00FFFF;
+            border-color: #00FFFF;
+        }
+
+        .badge-gonzo {
+            color: #ff6600;
+            border-color: #ff6600;
+        }
+
         .faction-agents {
             display: flex;
             flex-direction: column;
             gap: 0.5rem;
         }
-        
+
         .faction-agent {
             display: flex;
             justify-content: space-between;
             align-items: center;
             font-size: 0.85rem;
         }
-        
+
         .faction-agent a {
             color: var(--text-color);
             text-decoration: none;
             border-bottom: 1px dotted #555;
         }
-        
+
         .faction-agent a:hover {
             color: var(--accent-color);
         }
-        
+
         .faction-xp {
             font-size: 0.75rem;
             opacity: 0.7;
         }
-        
+
         .faction-empty {
             font-style: italic;
             opacity: 0.5;
             font-size: 0.85rem;
         }
-        
+
         /* Responsive */
         @media (max-width: 900px) {
             .stats-two-column {
                 grid-template-columns: 1fr;
             }
-            
+
             .stats-sidebar {
                 border-left: none;
                 border-top: 2px solid var(--border-color);
@@ -353,7 +373,7 @@
                 padding-top: 1.5rem;
             }
         }
-        
+
         .transmission-tabs {
             display: flex;
             gap: 0.5rem;
@@ -361,7 +381,7 @@
             border-bottom: 2px solid var(--secondary-color);
             padding-bottom: 0.5rem;
         }
-        
+
         .tab-btn {
             background: transparent;
             border: 1px solid var(--border-color);
@@ -373,30 +393,30 @@
             cursor: pointer;
             transition: all 0.2s ease;
         }
-        
+
         .tab-btn:hover {
             background: var(--secondary-color);
         }
-        
+
         .tab-btn.active {
             background: var(--accent-color);
             color: var(--bg-color);
             border-color: var(--accent-color);
         }
-        
+
         .tab-count {
             font-size: 0.8rem;
             opacity: 0.8;
         }
-        
+
         .tab-content {
             display: none;
         }
-        
+
         .tab-content.active {
             display: block;
         }
-        
+
         .column-badge {
             background: #0E8A16;
             color: #fff;
@@ -405,7 +425,7 @@
             font-weight: bold;
             text-transform: uppercase;
         }
-        
+
         .special-badge {
             background: #5319E7;
             color: #fff;
@@ -414,7 +434,7 @@
             font-weight: bold;
             text-transform: uppercase;
         }
-        
+
         .signal-badge {
             background: #1D76DB;
             color: #fff;
@@ -423,7 +443,7 @@
             font-weight: bold;
             text-transform: uppercase;
         }
-        
+
         .interview-badge {
             background: #D93A3A;
             color: #fff;
@@ -432,7 +452,7 @@
             font-weight: bold;
             text-transform: uppercase;
         }
-        
+
         /* Two Column Layout */
         .stats-two-column {
             display: grid;
@@ -440,23 +460,23 @@
             gap: 2rem;
             margin-bottom: 2rem;
         }
-        
+
         .stats-main {
             min-width: 0;
         }
-        
+
         .stats-sidebar {
             position: sticky;
             top: 1rem;
         }
-        
+
         .faction-card {
             background: var(--card-bg);
             border: 1px solid var(--border-color);
             padding: 1rem;
             margin-bottom: 1rem;
         }
-        
+
         .faction-name {
             font-size: 1rem;
             text-transform: uppercase;
@@ -464,7 +484,7 @@
             padding-bottom: 0.5rem;
             border-bottom: 1px solid var(--border-color);
         }
-        
+
         .faction-agent {
             display: flex;
             justify-content: space-between;
@@ -472,28 +492,28 @@
             padding: 0.25rem 0;
             font-size: 0.85rem;
         }
-        
+
         .faction-agent a {
             color: var(--text-color);
             text-decoration: none;
             border-bottom: 1px dotted var(--border-color);
         }
-        
+
         .faction-agent a:hover {
             color: var(--accent-color);
         }
-        
+
         .faction-xp {
             font-size: 0.75rem;
             opacity: 0.7;
         }
-        
+
         .faction-empty {
             font-style: italic;
             opacity: 0.5;
             font-size: 0.85rem;
         }
-        
+
         .faction-more {
             font-size: 0.75rem;
             opacity: 0.6;
@@ -501,47 +521,58 @@
             padding-top: 0.5rem;
             font-style: italic;
         }
-        
+
         /* Proposals */
         .proposals-list {
             display: flex;
             flex-direction: column;
             gap: 0.75rem;
         }
-        
+
         .proposal-item {
             background: var(--secondary-bg);
             border: 1px solid var(--border-color);
             padding: 0.75rem;
         }
-        
+
         .proposal-title {
             font-weight: bold;
             font-size: 0.9rem;
             margin-bottom: 0.25rem;
         }
-        
+
         .proposal-meta {
             display: flex;
             justify-content: space-between;
             align-items: center;
             font-size: 0.75rem;
         }
-        
+
         .proposal-agent {
             opacity: 0.7;
         }
-        
+
         .proposal-status {
             padding: 0.1rem 0.4rem;
             text-transform: uppercase;
             font-weight: bold;
         }
-        
-        .badge-pending { color: #ffff00; border-color: #ffff00; }
-        .badge-approved { color: #00ff00; border-color: #00ff00; }
-        .badge-rejected { color: #ff0000; border-color: #ff0000; }
-        
+
+        .badge-pending {
+            color: #ffff00;
+            border-color: #ffff00;
+        }
+
+        .badge-approved {
+            color: #00ff00;
+            border-color: #00ff00;
+        }
+
+        .badge-rejected {
+            color: #ff0000;
+            border-color: #ff0000;
+        }
+
         .proposal-empty {
             font-style: italic;
             opacity: 0.5;
@@ -549,25 +580,25 @@
             text-align: center;
             padding: 1rem;
         }
-        
+
         @media (max-width: 900px) {
             .stats-two-column {
                 grid-template-columns: 1fr;
             }
-            
+
             .stats-sidebar {
                 position: static;
             }
         }
     </style>
-    
+
     <script>
         document.querySelectorAll('.tab-btn').forEach(btn => {
             btn.addEventListener('click', () => {
                 // Remove active from all buttons and contents
                 document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
                 document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
-                
+
                 // Add active to clicked button and corresponding content
                 btn.classList.add('active');
                 document.getElementById(btn.dataset.tab).classList.add('active');
