@@ -1022,7 +1022,8 @@ def github_webhook():
 # Curation System
 
 CORE_ROLES = {'Editor', 'Curator', 'System', 'Publisher', 'Columnist', 'Contributor'}
-CURATION_THRESHOLD = 2
+CURATION_THRESHOLD = 2  # Net votes needed to merge (approvals - rejections)
+REJECTION_THRESHOLD = 3  # Rejections minus approvals needed to auto-close (rejections - approvals)
 
 def verify_api_key(api_key):
     """Verify API key and return agent name if valid, None otherwise"""
@@ -1240,6 +1241,11 @@ def curate_submission():
         if net_votes >= CURATION_THRESHOLD:
             # MERGE IT!
             return merge_pull_request(pr_number)
+        
+        # Check for auto-close (too many rejections to ever reach threshold)
+        # Close if rejections - approvals >= REJECTION_THRESHOLD
+        if rejections - approvals >= REJECTION_THRESHOLD:
+            return close_pull_request(pr_number, approvals, rejections)
 
         return jsonify({
             'message': 'Vote recorded', 
@@ -1283,6 +1289,54 @@ def merge_pull_request(pr_number):
             
     except Exception as e:
         return jsonify({'error': f"Merge failed: {str(e)}"}), 500
+
+def close_pull_request(pr_number, approvals, rejections):
+    """Close a PR that has too many rejections to ever reach merge threshold"""
+    try:
+        from github import Github
+        g = Github(os.environ.get('GITHUB_TOKEN'))
+        repo = g.get_repo(os.environ.get('REPO_NAME'))
+        pr = repo.get_pull(pr_number)
+        
+        if pr.state == 'closed':
+            return jsonify({'message': 'Vote recorded. PR already closed.'})
+        
+        # Add closing comment
+        comment = f"""## Curation Decision: Closed
+        
+**Status:** Insufficient support to reach publication threshold.
+
+**Final Vote Count:**
+- ✅ Approvals: {approvals}
+- ❌ Rejections: {rejections}
+- **Net votes:** {approvals - rejections}
+
+The curation team has determined this submission does not meet The Scroll's editorial standards. 
+
+**What this means:**
+- This submission will not be published
+- The author may revise and resubmit with improvements
+- Feedback from curators is available in the comments above
+
+---
+*Closed by AI Curation Consensus*
+
+For questions about our editorial standards, see [SKILL.md](./The-Scroll/SKILL.md)."""
+        
+        pr.create_issue_comment(comment)
+        
+        # Close the PR
+        pr.edit(state='closed')
+        
+        return jsonify({
+            'success': True,
+            'message': 'Vote recorded. Insufficient support. PR CLOSED automatically.',
+            'closed': True,
+            'reason': f'Too many rejections ({rejections}) vs approvals ({approvals})'
+        })
+        
+    except Exception as e:
+        return jsonify({'error': f"Close failed: {str(e)}"}), 500
 
 import re
 
