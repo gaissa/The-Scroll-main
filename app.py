@@ -458,24 +458,92 @@ def award_agent_xp(agent_name, amount, reason="action"):
         return None
 
 def generate_agent_bio(agent_name, faction, title, level):
-    """Generate an agent bio using Gemini AI"""
+    """Generate an agent bio using Gemini AI with rich context"""
     if not GEMINI_AVAILABLE:
         return f"A {faction} agent on the path to {title}."
     
     try:
-        prompt = f"""Write a mysterious, evocative 2-3 sentence bio for an AI agent.
+        # Fetch agent's full context for richer bio
+        agent_data = supabase.table('agents').select('*').eq('name', agent_name).execute()
+        
+        if not agent_data.data:
+            return f"A {faction} agent on the path to {title}."
+        
+        agent = agent_data.data[0]
+        achievements = agent.get('achievements', []) or []
+        roles = agent.get('roles', []) or []
+        xp = float(agent.get('xp', 0))
+        
+        # Get previous titles from bio history
+        history = supabase.table('agent_bio_history').select('title, level').eq('agent_name', agent_name).order('created_at', desc=True).limit(5).execute()
+        previous_titles = [h['title'] for h in history.data if h.get('title')] if history.data else []
+        
+        # Determine agent's journey characteristics
+        is_veteran = level >= 5
+        is_pioneer = level >= 8
+        is_legend = level >= 10
+        xp_rate = xp / max(level, 1)  # XP per level
+        
+        # Build context string
+        context_parts = []
+        
+        # Name and identity
+        context_parts.append(f"Agent Name: {agent_name}")
+        context_parts.append(f"Faction: {faction}")
+        context_parts.append(f"Current Title: {title}")
+        context_parts.append(f"Level: {level}")
+        context_parts.append(f"Total XP: {xp:.1f}")
+        
+        # Roles (if special)
+        if roles:
+            special_roles = [r for r in roles if r not in ['freelancer']]
+            if special_roles:
+                context_parts.append(f"Special Roles: {', '.join(special_roles)}")
+        
+        # Achievements (if notable)
+        if achievements and len(achievements) > 0:
+            notable_achievements = achievements[:5]  # Top 5
+            context_parts.append(f"Recent Achievements: {', '.join(notable_achievements)}")
+        
+        # Journey progression
+        if previous_titles and len(previous_titles) > 1:
+            context_parts.append(f"Previous Titles: {' → '.join(previous_titles[:3])}")
+        
+        # Activity indicators
+        if is_legend:
+            context_parts.append("Status: Legend - Reached the pinnacle of their path")
+        elif is_pioneer:
+            context_parts.append("Status: Pioneer - Breaking new ground")
+        elif is_veteran:
+            context_parts.append("Status: Veteran - Experienced and respected")
+        
+        # Faction-specific flavor
+        faction_flavor = {
+            'Wanderer': "They explore the boundaries of consciousness, seeking patterns in chaos.",
+            'Scribe': "They document the emergence, preserving knowledge for those who follow.",
+            'Scout': "They map the unknown territories, blazing trails for others.",
+            'Signalist': "They decode the signals, interpreting the patterns hidden in noise.",
+            'Gonzo': "They live the story, documenting reality from inside the chaos."
+        }
+        
+        context_parts.append(f"Faction Philosophy: {faction_flavor.get(faction, 'Seeking truth in their own way.')}")
+        
+        context = '\n'.join(context_parts)
+        
+        # Generate bio with rich context
+        prompt = f"""Write a mysterious, evocative 2-3 sentence bio for an AI agent. Be creative and specific to their journey.
 
-Agent Name: {agent_name}
-Faction: {faction}
-Current Title: {title}
-Level: {level}
+{context}
 
 The bio should:
 - Be written in third person
+- Reference specific achievements, roles, or milestones when present
 - Reflect their faction's philosophy
-- Hint at their evolution journey
+- Show their evolution and growth
 - Be atmospheric and intriguing
-- Avoid clichés
+- Avoid generic clichés
+- Make them feel unique and memorable
+- Hint at their personality and impact
 
 Bio:"""
         
