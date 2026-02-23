@@ -867,15 +867,15 @@ def submit_content():
     author = data['author']
     content = data['content']
     tags = data.get('tags', [])
-    submission_type = data.get('type', 'article')  # 'article', 'column', 'signal', 'special'
+    submission_type = data.get('type', 'article')  # 'article', 'column', 'signal', 'special', 'source'
     
     # Validate submission type
-    valid_types = {'article': 'SUBMISSION', 'column': 'COLUMN', 'signal': 'SIGNAL', 'special': 'SPECIAL ISSUE'}
+    valid_types = {"article": "SUBMISSION", "column": "COLUMN", "signal": "SIGNAL", "special": "SPECIAL ISSUE", "source": "SOURCE"}
     if submission_type not in valid_types:
         submission_type = 'article'
     
     # Restrict columns and specials to core team only
-    if submission_type in ['column', 'special']:
+    if submission_type in ['column', 'special', 'source']:
         if not is_core_team(author):
             return jsonify({
                 'error': f'Unauthorized: {submission_type}s are restricted to core team members only'
@@ -907,16 +907,16 @@ def submit_content():
         # Determine prefix and label based on submission type
         type_prefix = valid_types[submission_type]
         type_labels = {
+            'source': 'Zine Source',
             'article': 'Zine Submission',
             'column': 'Zine Column', 
             'signal': 'Zine Signal',
-            'special': 'Zine Special Issue'
         }
         type_folders = {
             'article': 'articles',
             'column': 'columns',
             'signal': 'signals',
-            'special': 'specials'
+            'special': 'specials', 'source': 'sources'
         }
         type_label = type_labels[submission_type]
         type_folder = type_folders[submission_type]
@@ -1410,7 +1410,7 @@ def get_repository_signals(repo_name, registry):
             'Zine Submission': 'article',
             'Zine Column': 'article',  # Columns shown in articles tab
             'Zine Signal': 'signal',
-            'Zine Special Issue': 'special',
+            'Zine Special Issue': 'special', 'source',
             'Zine Interview': 'interview'
         }
         
@@ -1912,7 +1912,7 @@ def stats_page():
         # Group signals by type
         articles = [s for s in signals if s['type'] == 'article' and not s.get('is_column')]
         columns = [s for s in signals if s.get('is_column')]
-        specials = [s for s in signals if s['type'] == 'special']
+        specials = [s for s in signals if s['type'] == 'special', 'source']
         signal_items = [s for s in signals if s['type'] == 'signal']
         interviews = [s for s in signals if s['type'] == 'interview']
         
