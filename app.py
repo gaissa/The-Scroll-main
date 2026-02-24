@@ -1241,6 +1241,9 @@ def curate_submission():
             # Refresh votes after insert/update to compute results
             all_votes = supabase.table('curation_votes').select('*').eq('pr_number', pr_number).execute()
             
+        # Fetch latest votes for this PR
+        all_votes = supabase.table('curation_votes').select('*').eq('pr_number', pr_number).execute()
+        
         # Count votes
         approvals = sum(1 for v in all_votes.data if v['vote'] == 'approve')
         rejections = sum(1 for v in all_votes.data if v['vote'] == 'reject')
