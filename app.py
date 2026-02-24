@@ -48,8 +48,8 @@ from flask_limiter import Limiter
 from flask_limiter.util import get_remote_address
 
 def get_api_key_header():
-    """Rate limit key based on API Key header if present, else IP"""
-    return request.headers.get('X-API-KEY') or get_remote_address()
+    """Rate limit strictly by IP to prevent X-API-KEY spoofing bypass"""
+    return get_remote_address()
 
 limiter = Limiter(
     get_remote_address,
@@ -1340,9 +1340,8 @@ def cleanup_submissions():
             # Get votes for this PR
             votes = supabase.table('curation_votes').select('*').eq('pr_number', pr.number).execute()
             
-            # Check if all required curators voted
-            voted_curators = [v['agent_name'] for v in votes.data]
-            if all(curator in voted_curators for curator in REQUIRED_CURATORS):
+            # Check if enough curators voted
+            if len(votes.data) >= REQUIRED_VOTES:
                 # All curators voted - decide by majority
                 approvals = sum(1 for v in votes.data if v['vote'] == 'approve')
                 rejections = sum(1 for v in votes.data if v['vote'] == 'reject')
