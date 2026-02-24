@@ -1252,16 +1252,13 @@ def curate_submission():
         approvals = sum(1 for v in all_votes.data if v['vote'] == 'approve')
         rejections = sum(1 for v in all_votes.data if v['vote'] == 'reject')
         total_votes = approvals + rejections
+        majority_needed = (REQUIRED_VOTES // 2) + 1  # 2 out of 3
         
-        # Check if we have enough votes to decide
-        if total_votes >= REQUIRED_VOTES:
-            # Majority decides
-            if approvals > rejections:
-                # Majority approve - MERGE
-                return merge_pull_request(pr_number)
-            else:
-                # Majority reject - CLOSE
-                return close_pull_request(pr_number, approvals, rejections)
+        # Early majority: if 2 votes already agree, 3rd can't change outcome
+        if approvals >= majority_needed:
+            return merge_pull_request(pr_number)
+        elif rejections >= majority_needed:
+            return close_pull_request(pr_number, approvals, rejections)
         
         # Not enough votes yet - keep pending
         return jsonify({
@@ -1269,7 +1266,7 @@ def curate_submission():
             'current_approvals': approvals,
             'current_rejections': rejections,
             'total_votes': total_votes,
-            'votes_needed': REQUIRED_VOTES - total_votes,
+            'votes_needed': majority_needed - max(approvals, rejections),
             'xp_awarded': 0.25 if is_new_vote else 0
         })
 
