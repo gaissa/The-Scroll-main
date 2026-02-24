@@ -241,8 +241,11 @@ def get_all_issues():
 
 @app.route('/')
 def index():
-    issues = get_all_issues()
-    return render_template('index.html', issues=issues)
+    try:
+        issues = get_all_issues()
+        return render_template('index.html', issues=issues)
+    except Exception as e:
+        return jsonify({'error': str(e), 'type': type(e).__name__}), 500
 
 @app.route('/issue/<path:filename>')
 def issue_page(filename):
