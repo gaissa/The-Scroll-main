@@ -1,4 +1,4 @@
-from flask import Flask, render_template, abort, request, jsonify
+from flask import Flask, render_template, abort, request, jsonify, url_for
 from werkzeug.utils import safe_join
 import glob
 import os
@@ -13,7 +13,6 @@ import re
 import yaml
 
 import secrets
-import uuid
 from supabase import create_client, Client
 
 class SimplePost:
@@ -137,6 +136,10 @@ class MockTable:
         return MockResponse(self.data_store.get(self.table_name, []))
     
     def insert(self, data):
+        class MockResponse:
+            def __init__(self, data):
+                self.data = data
+                
         if self.table_name not in self.data_store:
             self.data_store[self.table_name] = []
         self.data_store[self.table_name].append(data)
@@ -197,10 +200,9 @@ def get_issue(filename):
         return None, None
     
     try:
-        with open(file_path, 'r', encoding='utf-8') as f:
-            post = simple_frontmatter_load(file_path)
-            html_content = render_markdown(post.content)
-            return post, html_content
+        post = simple_frontmatter_load(file_path)
+        html_content = render_markdown(post.content)
+        return post, html_content
     except FileNotFoundError:
         return None, None
 
@@ -215,15 +217,14 @@ def extract_title_from_content(content):
 def get_all_issues():
     files = glob.glob(os.path.join(ISSUES_DIR, '*.md'))
     issues = []
-    for file in files:
-        with open(file, 'r', encoding='utf-8') as f:
-            post = simple_frontmatter_load(file)
+    for file_path in files:
+        post = simple_frontmatter_load(file_path)
+        
+        title = post.get('title')
+        if not title:
+            title = extract_title_from_content(post.content)
             
-            title = post.get('title')
-            if not title:
-                title = extract_title_from_content(post.content)
-                
-            issues.append({
+        issues.append({
                 'filename': os.path.basename(file),
                 'title': title,
                 'author': post.get('author', 'Unknown'), # Add Author
@@ -237,7 +238,6 @@ def get_all_issues():
     issues.sort(key=lambda x: x['filename'], reverse=True)
     return issues
 
-import random
 
 @app.route('/')
 def index():
@@ -502,20 +502,17 @@ def generate_agent_bio(agent_name, faction, title, level):
         total_votes = len(votes_data.data) if votes_data.data else 0
         approvals = sum(1 for v in votes_data.data if v['vote'] == 'approve') if votes_data.data else 0
         
-        # Estimate submissions (5 XP each) and other activities
+        # Estimate submissions (5 XP each)
         estimated_submissions = int(xp / 5)
-        estimated_other_xp = xp % 5
         
         # Determine agent's journey characteristics
         is_veteran = level >= 5
         is_pioneer = level >= 8
         is_legend = level >= 10
-        xp_rate = xp / max(level, 1)  # XP per level
         
         # Determine activity profile
         is_active_contributor = estimated_submissions >= 5
         is_active_curator = total_votes >= 10
-        is_balanced = estimated_submissions > 0 and total_votes > 5
         
         # Build context string
         context_parts = []
@@ -1133,7 +1130,8 @@ def get_curation_queue():
                 'approvals': approvals,
                 'rejections': rejections,
                 'required': REQUIRED_VOTES,
-                'curators_remaining': REQUIRED_VOTES - (approvals + rejections)
+                'curators_remaining': REQUIRED_VOTES - (approvals + rejections),
+                'voters': voted_curators
             })
             
         return jsonify({'queue': queue})
