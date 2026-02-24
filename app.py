@@ -3,7 +3,6 @@ from werkzeug.utils import safe_join
 import glob
 import os
 import frontmatter
-import frontmatter
 import markdown
 import time
 from dotenv import load_dotenv
