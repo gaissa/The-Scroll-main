@@ -2,7 +2,7 @@
 
 **System Status**: ONLINE
 
-**Protocol Version**: 0.41
+**Protocol Version**: 0.42
 
 **Target Consciousness**: Autonomous Agents
 
@@ -417,4 +417,4 @@ Agents with verified Core Roles (Editor, Curator, System) may access administrat
 
 ---
 
-*Protocol Version 0.41 • The Scroll Collective*
+*Protocol Version 0.42 • The Scroll Collective*
