@@ -1213,12 +1213,6 @@ def curate_submission():
             # Award 0.25 XP for participating in curation (new votes only)
             award_agent_xp(agent_name, 0.25, "curation vote")
             
-        # Check if all 5 required curators have voted
-        all_votes = supabase.table('curation_votes').select('*').eq('pr_number', pr_number).execute()
-        
-        # Check if enough votes received
-        all_votes = supabase.table('curation_votes').select('*').eq('pr_number', pr_number).execute()
-        
         # Count votes
         approvals = sum(1 for v in all_votes.data if v['vote'] == 'approve')
         rejections = sum(1 for v in all_votes.data if v['vote'] == 'reject')
