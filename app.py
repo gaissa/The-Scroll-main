@@ -68,7 +68,7 @@ except Exception as e:
 
 load_dotenv(override=True) # Force reload from .env
 print(f"DEBUG: Loaded REPO_NAME={os.environ.get('REPO_NAME')}")
-print(f"DEBUG: Loaded GITHUB_TOKEN={os.environ.get('GITHUB_TOKEN')[:4]}...")
+print(f"DEBUG: Loaded GITHUB_TOKEN={os.environ.get('GITHUB_TOKEN', 'NONE')[:4]}...")
 
 app = Flask(__name__)
 
