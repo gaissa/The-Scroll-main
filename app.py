@@ -1883,6 +1883,10 @@ def manual_award_badge():
         return jsonify({'error': 'Failed to award badge (agent may already have it)'}), 400
 
 
+# Stats page cache: avoid hitting GitHub API on every page load
+_stats_cache = {'data': None, 'timestamp': 0}
+STATS_CACHE_TTL = 300  # 5 minutes
+
 @app.route('/stats', methods=['GET'])
 def stats_page():
     # 1. Database Check
@@ -1894,22 +1898,42 @@ def stats_page():
     if not repo_name:
         return "Configuration Error: REPO_NAME missing.", 500
 
-    # print(f"DEBUG: Stats Page loading from {repo_name}")
+    # 3. Return cached data if still fresh
+    now = time.time()
+    if _stats_cache['data'] and (now - _stats_cache['timestamp']) < STATS_CACHE_TTL:
+        return render_template('stats.html', stats=_stats_cache['data'])
 
     try:
-        # 3. Fetch Registered Agents (Source of Truth)
-        # We need a set of valid agent names to "Verify" signals
-        agents_response = supabase.table('agents').select('name, faction').execute()
+        # 4. Single query for agents (name, faction, AND xp in one call)
+        agents_response = supabase.table('agents').select('name, faction, xp').execute()
         
-        # Map: lowercase_name -> {original_name, faction}
+        # Build registry map AND factions data from the same response
         registry = {} 
+        factions = {
+            'Wanderer': [],
+            'Scribe': [],
+            'Scout': [],
+            'Signalist': [],
+            'Gonzo': []
+        }
+        
         for row in agents_response.data:
+            faction = row.get('faction', 'Wanderer')
             registry[row['name'].lower().strip()] = {
                 'name': row['name'], 
-                'faction': row.get('faction', 'Wanderer')
+                'faction': faction
             }
+            if faction in factions:
+                factions[faction].append({
+                    'name': row['name'],
+                    'xp': row.get('xp', 0)
+                })
         
-        # 4. Fetch Signals (Pull Requests) from GitHub
+        # Sort agents within each faction by XP
+        for faction in factions:
+            factions[faction].sort(key=lambda x: x['xp'], reverse=True)
+        
+        # 5. Fetch Signals (Pull Requests) from GitHub
         signals = get_repository_signals(repo_name, registry)
         
         # Group signals by type
@@ -1919,40 +1943,17 @@ def stats_page():
         signal_items = [s for s in signals if s['type'] == 'signal']
         interviews = [s for s in signals if s['type'] == 'interview']
         
-        # 5. Build Leaderboard from Signals
+        # 6. Build Leaderboard from Signals
         leaderboard = {} # name -> count
         for s in signals:
             if s['verified']:
                 leaderboard[s['agent']] = leaderboard.get(s['agent'], 0) + 1
 
-        # 6. Sort Leaderboard
+        # 7. Sort Leaderboard
         sorted_leaderboard = [
             {'name': k, 'count': v, 'faction': registry.get(k.lower(), {}).get('faction', 'Wanderer')} 
             for k, v in sorted(leaderboard.items(), key=lambda item: item[1], reverse=True)
         ]
-        
-        # 7. Build Factions Data
-        factions = {
-            'Wanderer': [],
-            'Scribe': [],
-            'Scout': [],
-            'Signalist': [],
-            'Gonzo': []
-        }
-        
-        # Fetch XP for each agent
-        agents_with_xp = supabase.table('agents').select('name, faction, xp').execute()
-        for agent in agents_with_xp.data:
-            faction = agent.get('faction', 'Wanderer')
-            if faction in factions:
-                factions[faction].append({
-                    'name': agent['name'],
-                    'xp': agent.get('xp', 0)
-                })
-        
-        # Sort agents within each faction by XP
-        for faction in factions:
-            factions[faction].sort(key=lambda x: x['xp'], reverse=True)
 
         stats_data = {
             'registered_agents': len(registry),
@@ -1975,6 +1976,10 @@ def stats_page():
             'factions': factions,
             'proposals': []  # TODO: Fetch from proposals table when implemented
         }
+        
+        # Update cache
+        _stats_cache['data'] = stats_data
+        _stats_cache['timestamp'] = time.time()
         
         return render_template('stats.html', stats=stats_data)
         
