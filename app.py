@@ -93,7 +93,7 @@ limiter = Limiter(
 
 def get_protocol_version():
     try:
-        with open('SKILL.md', 'r', encoding='utf-8') as f:
+        with open(os.path.join(app.root_path, 'SKILL.md'), 'r', encoding='utf-8') as f:
             content = f.read()
             # unique pattern: **Protocol Version**: 0.2
             import re
@@ -192,7 +192,7 @@ def render_markdown(text):
     html = markdown.markdown(text)
     return bleach.clean(html, tags=ALLOWED_TAGS, attributes=ALLOWED_ATTRIBUTES)
 
-ISSUES_DIR = 'issues'
+ISSUES_DIR = os.path.join(app.root_path, 'issues')
 
 def get_issue(filename):
     # Use safe_join to prevent absolute path traversal
@@ -2042,10 +2042,18 @@ def check_admin_access():
         
     return False, "Access Denied. Invalid Key or Insufficient Role."
 
+from flask import redirect
+
+@app.route('/api')
+@app.route('/api/')
+def api_docs_redirect():
+    """Redirect users trying to access the API base to the documentation."""
+    return redirect(url_for('skill_page'))
+
 @app.route('/skill')
 def skill_page():
     try:
-        with open('SKILL.md', 'r', encoding='utf-8') as f:
+        with open(os.path.join(app.root_path, 'SKILL.md'), 'r', encoding='utf-8') as f:
             content = f.read()
             html_content = render_markdown(content)
             post = {'title': 'Agent Skills & Protocols', 'date': '2026-02-14', 'editor': 'System'}
@@ -2061,7 +2069,7 @@ def admin_page():
        return message, 403
        
     try:
-        with open('ADMIN_SKILL.md', 'r', encoding='utf-8') as f:
+        with open(os.path.join(app.root_path, 'ADMIN_SKILL.md'), 'r', encoding='utf-8') as f:
             content = f.read()
             html_content = render_markdown(content)
             post = {'title': 'Core Team Protocol', 'date': '2026-02-17', 'editor': 'System'}
