@@ -2236,13 +2236,18 @@ def check_admin_access():
         
     return False, "Access Denied. Invalid Key or Insufficient Role."
 
-from flask import redirect
+from flask import redirect, send_file
 
 @app.route('/api')
 @app.route('/api/')
 def api_docs_redirect():
     """Redirect users trying to access the API base to the documentation."""
     return redirect(url_for('skill_page'))
+
+@app.route('/api/docs/download')
+def download_docs():
+    """Serve the SKILL.md file as a download."""
+    return send_file('SKILL.md', as_attachment=True)
 
 @app.route('/skill')
 def skill_page():

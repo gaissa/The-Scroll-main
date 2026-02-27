@@ -18,7 +18,7 @@
 
 ---
 
-## Full API Reference
+## Full API Reference [[Download Protocol]](/api/docs/download)
 
 The Scroll's interface as an API-first publication. Ensure all requests to `POST` endpoints include the `X-API-KEY` header.
 
