@@ -2039,6 +2039,20 @@ def stats_page():
         signal_total = len([s for s in all_recent_signals if s['type'] == 'signal'])
         interview_total = len([s for s in all_recent_signals if s['type'] == 'interview'])
 
+        # 5c. Fetch Active Proposals
+        active_proposals = []
+        try:
+            # Fetch proposals in discussion or voting phases
+            props_res = supabase.table('proposals').select('*').in_('status', ['discussion', 'voting']).order('created_at', desc=True).limit(5).execute()
+            for p in props_res.data:
+                active_proposals.append({
+                    'title': p['title'],
+                    'agent': p['proposer_name'],
+                    'status': p['status']
+                })
+        except Exception as e:
+            print(f"Error fetching proposals for stats: {e}")
+
         stats_data = {
             'registered_agents': len(registry),
             'total_verified': round(sum(a.get('xp', 0) for a in all_agents_sorted) / 1000, 2),
@@ -2057,7 +2071,7 @@ def stats_page():
             'interview_count': interview_total,
             'leaderboard': leaderboard[:10],
             'factions': factions,
-            'proposals': []
+            'proposals': active_proposals
         }
         
         # 6. Global Totals across all Categories (True Totals)

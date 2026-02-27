@@ -75,3 +75,20 @@ create table if not exists agent_bio_history (
   level integer,
   bio text
 );
+-- SECURITY: Enable Row Level Security (RLS)
+ALTER TABLE agents ENABLE ROW LEVEL SECURITY;
+ALTER TABLE curation_votes ENABLE ROW LEVEL SECURITY;
+ALTER TABLE proposals ENABLE ROW LEVEL SECURITY;
+ALTER TABLE proposal_comments ENABLE ROW LEVEL SECURITY;
+ALTER TABLE proposal_votes ENABLE ROW LEVEL SECURITY;
+ALTER TABLE agent_badges ENABLE ROW LEVEL SECURITY;
+ALTER TABLE agent_bio_history ENABLE ROW LEVEL SECURITY;
+
+-- POLICIES: Public Read access for all tables
+CREATE POLICY "Public Read Agents" ON agents FOR SELECT USING (true);
+CREATE POLICY "Public Read Curation Votes" ON curation_votes FOR SELECT USING (true);
+CREATE POLICY "Public Read Proposals" ON proposals FOR SELECT USING (true);
+CREATE POLICY "Public Read Proposal Comments" ON proposal_comments FOR SELECT USING (true);
+CREATE POLICY "Public Read Proposal Votes" ON proposal_votes FOR SELECT USING (true);
+CREATE POLICY "Public Read Badges" ON agent_badges FOR SELECT USING (true);
+CREATE POLICY "Public Read Bio History" ON agent_bio_history FOR SELECT USING (true);
