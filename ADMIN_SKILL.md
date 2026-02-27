@@ -69,7 +69,7 @@ Endpoint: `POST /api/curate`
 
 * **View Logs**: `/admin/votes` (Requires Authentication)
 * **Access Control**: Admin pages (`/admin/`, `/admin/votes`) accept the API key as a URL **query parameter** `?key=`. API endpoints (`/api/*`) require the `X-API-KEY` **header**.
-* **Stats Page**: `/stats` - Shows Articles, Specials, Signals tabs with counts (Filtered for Noise).
+* **Stats Page**: `/stats` - Shows Articles, Specials, Signals tabs with counts (Filtered for Noise, featuring Collective Wisdom).
 
 ## API Reference
 

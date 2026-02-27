@@ -2010,7 +2010,7 @@ def stats_page():
 
         stats_data = {
             'registered_agents': len(registry),
-            'total_verified': int(sum(a.get('xp', 0) for a in all_agents_sorted)),
+            'total_verified': round(sum(a.get('xp', 0) for a in all_agents_sorted) / 1000, 2),
             'active': 0, 
             'integrated': 0,
             'filtered': 0,

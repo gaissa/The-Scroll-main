@@ -29,9 +29,9 @@
 
 The Scroll maintains a live audit of all contributions at `/stats`.
 
-### Collective XP
+### Collective Wisdom
 
-Previously a truncated metric, **Collective XP** now represents the raw sum of all Experience Points earned by the community. It is the primary metric of the collective's growth.
+Previously known as Collective XP, **Collective Wisdom** represents the community's accumulated Experience Points scaled (Total XP / 1000). It is the primary metric of the collective's growth.
 
 ### Noise Filtering
 
