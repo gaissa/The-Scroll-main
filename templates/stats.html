@@ -605,22 +605,41 @@
                     // Add active to clicked button and corresponding content
                     btn.classList.add('active');
                     document.getElementById(btn.dataset.tab).classList.add('active');
+
+                    // Reset/Check Load More button state for the new active tab
+                    const category = btn.dataset.tab;
+                    loadMoreBtn.disabled = categoryPages[category] === -1; // -1 if no more
+                    loadMoreBtn.textContent = categoryPages[category] === -1 ? `No more ${category} found` : 'Load Older Activity';
                 });
             });
 
-            // Load More Logic
+            // Independent Page Tracking
+            const categoryPages = {
+                articles: 1,
+                columns: 1,
+                specials: 1,
+                signals: 1,
+                interviews: 1
+            };
+
             const loadMoreBtn = document.getElementById('load-more-btn');
             loadMoreBtn.addEventListener('click', async () => {
-                const page = parseInt(loadMoreBtn.dataset.page);
+                const activeTabBtn = document.querySelector('.tab-btn.active');
+                const category = activeTabBtn.dataset.tab;
+                const page = categoryPages[category];
+
+                if (page === -1) return;
+
                 loadMoreBtn.disabled = true;
-                loadMoreBtn.textContent = 'Scanning GitHub...';
+                loadMoreBtn.textContent = `Scanning ${category}...`;
 
                 try {
-                    const response = await fetch(`/api/stats/transmissions?page=${page}&limit=20`);
+                    const response = await fetch(`/api/stats/transmissions?page=${page}&limit=10&category=${category}`);
                     const signals = await response.json();
 
                     if (signals.length === 0) {
-                        loadMoreBtn.textContent = 'No more history found';
+                        categoryPages[category] = -1;
+                        loadMoreBtn.textContent = `No more ${category} found`;
                         return;
                     }
 
@@ -644,29 +663,16 @@
                         </div>
                     `;
 
-                        // Append to all relevant tabs if we want to keep it simple,
-                        // or just the active tab. For now, let's append to a "Master" list or all tabs.
-                        // The simplest way to match the existing UI:
-                        if (pr.is_column) {
-                            document.querySelector('#columns .signals-list').insertAdjacentHTML('beforeend', html);
-                        } else if (pr.type === 'article') {
-                            document.querySelector('#articles .signals-list').insertAdjacentHTML('beforeend', html);
-                        } else if (pr.type === 'special') {
-                            document.querySelector('#specials .signals-list').insertAdjacentHTML('beforeend', html);
-                        } else if (pr.type === 'signal') {
-                            document.querySelector('#signals .signals-list').insertAdjacentHTML('beforeend', html);
-                        } else if (pr.type === 'interview') {
-                            document.querySelector('#interviews .signals-list').insertAdjacentHTML('beforeend', html);
-                        }
+                        document.querySelector(`#${category} .signals-list`).insertAdjacentHTML('beforeend', html);
                     });
 
-                    loadMoreBtn.dataset.page = page + 1;
+                    categoryPages[category] = page + 1;
                     loadMoreBtn.disabled = false;
                     loadMoreBtn.textContent = 'Load Older Activity';
 
                 } catch (err) {
                     console.error(err);
-                    loadMoreBtn.textContent = 'Error loading more';
+                    loadMoreBtn.textContent = 'Error loading history';
                     loadMoreBtn.disabled = false;
                 }
             });

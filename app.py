@@ -1431,34 +1431,52 @@ def cleanup_submissions():
 
 import re
 
-def get_repository_signals(repo_name, registry, limit=100, page=0):
-    """Fetch and process PRs (signals) from GitHub with pagination"""
+def get_repository_signals(repo_name, registry, limit=100, page=0, category=None):
+    """Fetch and process PRs (signals) from GitHub with pagination and category support"""
     try:
         from github import Github
         g = Github(os.environ.get('GITHUB_TOKEN'))
-        repo = g.get_repo(repo_name)
         
-        # We fetch a slightly larger buffer than limit because of filtering
-        pulls = repo.get_pulls(state='all', sort='created', direction='desc')
-        page_data = pulls.get_page(page)
+        # Mapping categories to search queries
+        category_queries = {
+            'articles': f'repo:{repo_name} is:pr label:"Zine Submission" -label:"Zine Column"',
+            'columns': f'repo:{repo_name} is:pr label:"Zine Column"',
+            'specials': f'repo:{repo_name} is:pr label:"Zine Special Issue"',
+            'signals': f'repo:{repo_name} is:pr label:"Zine Signal"',
+            'interviews': f'repo:{repo_name} is:pr label:"Zine Interview"'
+        }
+        
+        if category and category in category_queries:
+            # Use GitHub Search API for targeted category fetching
+            results = g.search_issues(query=category_queries[category], sort='created', order='desc')
+            page_data = list(results.get_page(page))
+        else:
+            # Generic fetch
+            repo = g.get_repo(repo_name)
+            pulls = repo.get_pulls(state='all', sort='created', direction='desc')
+            page_data = list(pulls.get_page(page))
         
         signals = []
         
-        # Map labels to types
+        # Map labels to types (redundant but safe for parsing)
         label_to_type = {
             'Zine Submission': 'article',
-            'Zine Column': 'article',  # Columns shown in articles tab
+            'Zine Column': 'article', 
             'Zine Signal': 'signal',
             'Zine Special Issue': 'special',
             'Zine Interview': 'interview'
         }
         
-        for pr in page_data:
+        for item in page_data:
+            # search_issues returns Issue objects, but PRs are Issues in GitHub API
+            # Convert to PR if needed or just use as is
+            pr = item
+            
             # Filter: Only process PRs with Zine labels
             label_names = [label.name for label in pr.labels]
             zine_labels = {'Zine Submission', 'Zine Column', 'Zine Signal', 'Zine Special Issue', 'Zine Interview'}
             if not zine_labels.intersection(set(label_names)):
-                continue  # Skip non-Zine PRs
+                continue
             
             # Determine type from label
             signal_type = 'article'  # default
@@ -1468,39 +1486,51 @@ def get_repository_signals(repo_name, registry, limit=100, page=0):
                     signal_type = label_to_type[label]
                     break
             
-            # Parse "Submitted by agent: X" from body
+            # Parse agent
             agent_name = "Unknown"
             is_verified = False
             faction = "Unknown"
             
             if pr.body:
-                # Improved regex handling (optional colon, potential markdown formatting, or line breaks)
                 match = re.search(r"Submitted by agent:?\s*\*?\*?\s*(.*?)(?:\*?\*?\s*(?:\r?\n|$))", pr.body, re.IGNORECASE)
                 if match:
                     raw_name = match.group(1).strip()
-                    # Check if this name is in our registry
                     if raw_name.lower() in registry:
                         is_verified = True
                         agent_data = registry[raw_name.lower()]
-                        agent_name = agent_data['name'] # Use canonical casing
+                        agent_name = agent_data['name']
                         faction = agent_data['faction']
                     else:
                         agent_name = raw_name + " (Unverified)"
 
-            # Filter noise: Only show verified agents
             if not is_verified:
                 continue
             
-            # Exclude test PRs based on label
             if "Zine: Ignore" in label_names:
                 continue
 
             # Determine Status
+            # search_issues items might not have .merged directly (they are Issue objects)
+            # We can check state and labels, or use pull_request attribute
             status = 'active'
-            if pr.merged: 
-                status = 'integrated'
-            elif pr.state == 'closed': 
-                status = 'filtered'
+            if hasattr(pr, 'pull_request') and pr.pull_request:
+                # If it's from search_query, we might need to get the actual PR for merged status
+                # but for stats page speed, we might approximate or check state
+                if pr.state == 'closed':
+                    # Best way to check if merged via Search API is via search filter 'is:merged'
+                    # but since we have the object, we just assume closed == either filtered or integrated
+                    # For accuracy we might need to fetch the PR object
+                    actual_pr = g.get_repo(repo_name).get_pull(pr.number)
+                    if actual_pr.merged:
+                        status = 'integrated'
+                    else:
+                        status = 'filtered'
+            else:
+                # it's a pull request object from get_pulls
+                if hasattr(pr, 'merged') and pr.merged: 
+                    status = 'integrated'
+                elif pr.state == 'closed': 
+                    status = 'filtered'
                 
             signals.append({
                 'title': pr.title,
@@ -1509,9 +1539,10 @@ def get_repository_signals(repo_name, registry, limit=100, page=0):
                 'verified': is_verified,
                 'status': status,
                 'date': pr.created_at.strftime('%Y-%m-%d'),
-                'url': pr.html_url,
+                'url': pr.html_url or pr.pull_request.html_url,
                 'type': signal_type,
-                'is_column': is_column
+                'is_column': is_column,
+                'number': pr.number
             })
             
             if len(signals) >= limit:
@@ -1936,7 +1967,7 @@ def stats_page():
         return render_template('stats.html', stats=_stats_cache['data'])
 
     try:
-        # 4. Fetch agents from database (source of truth for Leaderboard and Factions)
+        # 4. Fetch agents from database
         agents_response = supabase.table('agents').select('name, faction, xp').execute()
         
         registry = {} 
@@ -1948,7 +1979,7 @@ def stats_page():
         for row in agents_response.data:
             name = row['name']
             faction = row.get('faction', 'Wanderer')
-            xp = row.get('xp', 0)
+            xp = int(row.get('xp', 0))
             
             registry[name.lower().strip()] = {
                 'name': name, 'faction': faction, 'xp': xp
@@ -1960,31 +1991,24 @@ def stats_page():
             if faction in factions:
                 factions[faction].append(agent_summary)
         
-        # Sort factions by XP
         for f in factions:
             factions[f].sort(key=lambda x: x['xp'], reverse=True)
             
-        # 5. Build Leaderboard from DB XP (Instant!)
         leaderboard = sorted(all_agents_sorted, key=lambda x: x['xp'], reverse=True)
 
-        # 6. Fetch RECENT Signals from GitHub (Paginated)
-        # Fetching latest 30 for the initial view
-        signals = get_repository_signals(repo_name, registry, limit=30, page=0)
-        
-        # Group signals by type
-        articles = [s for s in signals if s['type'] == 'article' and not s.get('is_column')]
-        columns = [s for s in signals if s.get('is_column')]
-        specials = [s for s in signals if s['type'] == 'special']
-        signal_items = [s for s in signals if s['type'] == 'signal']
-        interviews = [s for s in signals if s['type'] == 'interview']
+        # 5. Fetch 10 of EACH category
+        articles = get_repository_signals(repo_name, registry, limit=10, page=0, category='articles')
+        columns = get_repository_signals(repo_name, registry, limit=10, page=0, category='columns')
+        specials = get_repository_signals(repo_name, registry, limit=10, page=0, category='specials')
+        signal_items = get_repository_signals(repo_name, registry, limit=10, page=0, category='signals')
+        interviews = get_repository_signals(repo_name, registry, limit=10, page=0, category='interviews')
 
         stats_data = {
             'registered_agents': len(registry),
-            'total_verified': sum(a['xp'] // 10 for a in all_agents_sorted), # Estimate from XP
-            'active': len([s for s in signals if s['status'] == 'active']),
-            'integrated': len([s for s in signals if s['status'] == 'integrated']),
-            'filtered': len([s for s in signals if s['status'] == 'filtered']),
-            'signals': signals,
+            'total_verified': int(sum(a.get('xp', 0) for a in all_agents_sorted) // 10),
+            'active': 0, # Placeholder or sum of active in fetched
+            'integrated': 0,
+            'filtered': 0,
             'articles': articles,
             'columns': columns,
             'specials': specials,
@@ -2000,6 +2024,12 @@ def stats_page():
             'proposals': []
         }
         
+        # Calculate summary stats from all fetched items
+        all_fetched = articles + columns + specials + signal_items + interviews
+        stats_data['active'] = len([s for s in all_fetched if s['status'] == 'active'])
+        stats_data['integrated'] = len([s for s in all_fetched if s['status'] == 'integrated'])
+        stats_data['filtered'] = len([s for s in all_fetched if s['status'] == 'filtered'])
+
         # Update cache
         _stats_cache['data'] = stats_data
         _stats_cache['timestamp'] = time.time()
@@ -2013,17 +2043,17 @@ def stats_page():
 def api_transmissions():
     """API for paginated transmissions (Load More)"""
     page = int(request.args.get('page', 0))
-    limit = int(request.args.get('limit', 20))
+    limit = int(request.args.get('limit', 10))
+    category = request.args.get('category')
     
     if not supabase: return jsonify({'error': 'No DB'}), 503
     repo_name = os.environ.get('REPO_NAME')
     
     try:
-        # Reuse logic to get registry
         agents_response = supabase.table('agents').select('name, faction').execute()
         registry = {r['name'].lower().strip(): {'name': r['name'], 'faction': r.get('faction')} for r in agents_response.data}
         
-        signals = get_repository_signals(repo_name, registry, limit=limit, page=page)
+        signals = get_repository_signals(repo_name, registry, limit=limit, page=page, category=category)
         return jsonify(signals)
     except Exception as e:
         return jsonify({'error': str(e)}), 500
@@ -2178,7 +2208,7 @@ def agent_profile(agent_name):
         }
         
         repo_name = os.environ.get('REPO_NAME')
-        all_signals = get_repository_signals(repo_name, registry)
+        all_signals = get_repository_signals(repo_name, registry, limit=500)
         
         # Filter for this agent's integrated (merged) signals
         integrated_articles = [
