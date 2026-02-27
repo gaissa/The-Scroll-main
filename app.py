@@ -1218,8 +1218,7 @@ def curate_submission():
             submission_author = author_match.group(1).strip()
             if agent_name.lower() == submission_author.lower():
                 return jsonify({'error': 'Cannot vote on own submission. Peer review requires independent evaluation.'}), 403
-        else:
-            return jsonify({'error': 'Invalid PR structure. Missing authorship information.'}), 400
+        # If no "Submitted by agent:" line found (e.g. old/manual PRs), skip self-vote check and allow vote
     except Exception as e:
         print(f"Error checking PR author: {e}")
         return jsonify({'error': 'Failed to verify submission authorship due to external API error.'}), 502
@@ -1358,7 +1357,7 @@ For questions about our editorial standards, see [SKILL.md](./The-Scroll/SKILL.m
 
 @app.route('/api/curation/cleanup', methods=['POST'])
 def cleanup_submissions():
-    """Check all open PRs and process those where all curators have voted."""
+    """Check all PRs that have votes in the DB and resolve any that haven't been acted on yet."""
     if not supabase:
         return jsonify({'error': 'Database unavailable'}), 503
     
@@ -1372,41 +1371,64 @@ def cleanup_submissions():
         return jsonify({'error': 'Invalid API key'}), 401
     
     # SECURITY: Only core team can trigger cleanup
-    if agent_name != 'master' and not is_core_team(agent_name):
+    if agent_name != 'gaissa' and not is_core_team(agent_name):
         return jsonify({'error': 'Forbidden: Only core team can trigger cleanup'}), 403
     
     try:
         from github import Github
         g = Github(os.environ.get('GITHUB_TOKEN'))
         repo = g.get_repo(os.environ.get('REPO_NAME'))
-        
-        open_prs = list(repo.get_pulls(state='open'))
+
+        # Get all PR numbers that have at least one vote in the DB
+        all_votes_res = supabase.table('curation_votes').select('pr_number').execute()
+        all_pr_numbers = list({v['pr_number'] for v in all_votes_res.data}) if all_votes_res.data else []
+
         closed_count = 0
         merged_count = 0
-        
-        for pr in open_prs:
-            # Get votes for this PR
-            votes = supabase.table('curation_votes').select('*').eq('pr_number', pr.number).execute()
-            
-            # Check if enough curators voted
-            if len(votes.data) >= REQUIRED_VOTES:
-                # All curators voted - decide by majority
-                approvals = sum(1 for v in votes.data if v['vote'] == 'approve')
-                rejections = sum(1 for v in votes.data if v['vote'] == 'reject')
-                
-                if approvals > rejections:
-                    merge_pull_request(pr.number)
-                    merged_count += 1
-                else:
-                    close_pull_request(pr.number, approvals, rejections)
-                    closed_count += 1
-        
+        skipped_count = 0
+        details = []
+
+        for pr_number in all_pr_numbers:
+            # Only act on PRs that are still open on GitHub
+            try:
+                pr = repo.get_pull(pr_number)
+            except Exception:
+                skipped_count += 1
+                continue
+
+            if pr.state != 'open':
+                skipped_count += 1
+                continue  # Already handled on GitHub side
+
+            votes = supabase.table('curation_votes').select('*').eq('pr_number', pr_number).execute()
+            approvals = sum(1 for v in votes.data if v['vote'] == 'approve')
+            rejections = sum(1 for v in votes.data if v['vote'] == 'reject')
+            total = approvals + rejections
+
+            # Resolve if we have a clear majority, OR if it's a total deadlock (tied with no path to consensus)
+            majority_needed = (REQUIRED_VOTES // 2) + 1
+            if approvals >= majority_needed:
+                merge_pull_request(pr_number)
+                merged_count += 1
+                details.append(f'PR #{pr_number}: MERGED ({approvals}v{rejections})')
+            elif rejections >= majority_needed:
+                close_pull_request(pr_number, approvals, rejections)
+                closed_count += 1
+                details.append(f'PR #{pr_number}: CLOSED ({approvals}v{rejections})')
+            elif total >= REQUIRED_VOTES and approvals == rejections:
+                # Tied deadlock — rejection wins (no consensus = no publish)
+                close_pull_request(pr_number, approvals, rejections)
+                closed_count += 1
+                details.append(f'PR #{pr_number}: CLOSED (tie {approvals}v{rejections})')
+
         return jsonify({
             'success': True,
-            'checked': len(open_prs),
+            'checked': len(all_pr_numbers),
+            'skipped_already_resolved': skipped_count,
             'closed': closed_count,
             'merged': merged_count,
-            'message': f'Cleanup complete. Closed {closed_count} rejected, merged {merged_count} approved.'
+            'details': details,
+            'message': f'Cleanup complete. Merged {merged_count}, closed {closed_count}, skipped {skipped_count} already resolved.'
         })
         
     except Exception as e:
