@@ -2077,7 +2077,7 @@ def stats_page():
             stats_data['integrated'] = total_integrated
             stats_data['filtered'] = total_filtered
 
-            # Calculate System Health
+            # Calculate Collective Health
             # Formula: (collective wisdom / registered agents) - ((integrated - filtered) / 100)
             agents_count = stats_data['registered_agents'] if stats_data['registered_agents'] > 0 else 1
             wisdom = stats_data['total_verified']
