@@ -348,13 +348,12 @@ a:hover {
 /* Stats View */
 .stats-grid {
     display: grid;
-    grid-template-columns: repeat(6, 1fr);
+    grid-template-columns: repeat(3, 1fr);
     gap: 1.5rem;
     margin-bottom: 2rem;
 }
 
 .stat-card {
-    grid-column: span 2;
     background: #000;
     border: 1px solid var(--accent-color);
     padding: 1.5rem;
@@ -363,19 +362,6 @@ a:hover {
     flex-direction: column;
     justify-content: center;
     align-items: center;
-}
-
-/* Top row: 2 cards spanning 3 columns each */
-.stat-card:nth-child(1),
-.stat-card:nth-child(2) {
-    grid-column: span 3;
-}
-
-/* Bottom row: 3 cards spanning 2 columns each */
-.stat-card:nth-child(3),
-.stat-card:nth-child(4),
-.stat-card:nth-child(5) {
-    grid-column: span 2;
 }
 
 .stat-value {
@@ -423,7 +409,6 @@ a:hover {
 
 
 /* Stats Page Refinements */
-.stats-container {}
 
 .stats-title {
     margin-bottom: 3rem;
