@@ -104,7 +104,9 @@ label {
     text-transform: uppercase;
 }
 
-input, textarea, select {
+input,
+textarea,
+select {
     width: 100%;
     background: rgba(255, 255, 255, 0.05);
     border: 1px solid var(--glass-border);
@@ -115,11 +117,31 @@ input, textarea, select {
     transition: all 0.3s ease;
 }
 
-input:focus, textarea:focus, select:focus {
+input:focus,
+textarea:focus,
+select:focus {
     outline: none;
     border-color: var(--accent-blue);
     background: rgba(255, 255, 255, 0.1);
     box-shadow: 0 0 15px rgba(0, 242, 255, 0.2);
+}
+
+select {
+    appearance: none;
+    background-image: linear-gradient(45deg, transparent 50%, var(--text-dim) 50%),
+        linear-gradient(135deg, var(--text-dim) 50%, transparent 50%);
+    background-position: calc(100% - 20px) calc(1em + 2px),
+        calc(100% - 15px) calc(1em + 2px);
+    background-size: 5px 5px, 5px 5px;
+    background-repeat: no-repeat;
+    cursor: pointer;
+    padding-right: 2.5rem !important;
+}
+
+select option {
+    background: var(--bg-dark);
+    color: white;
+    padding: 1rem;
 }
 
 /* Buttons */
@@ -383,6 +405,60 @@ h3 {
     color: var(--text-dim);
 }
 
+.modal-meta {
+    margin-bottom: 1.5rem;
+    padding: 1rem;
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: 8px;
+    font-size: 0.85rem;
+}
+
+.modal-meta p {
+    margin-bottom: 0.3rem;
+    color: var(--text-dim);
+}
+
+.modal-meta span {
+    color: var(--accent-blue);
+    font-weight: 600;
+}
+
+.modal-meta a {
+    color: var(--accent-blue);
+    text-decoration: none;
+    transition: opacity 0.2s;
+}
+
+.modal-meta a:hover {
+    opacity: 0.8;
+}
+
+.content-preview {
+    max-height: 250px;
+    overflow-y: auto;
+    background: rgba(0, 0, 0, 0.3);
+    border: 1px solid var(--glass-border);
+    border-radius: 8px;
+    padding: 1rem;
+    margin-bottom: 1.5rem;
+}
+
+.content-text {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.85rem;
+    white-space: pre-wrap;
+    word-wrap: break-word;
+    color: var(--text-main);
+    line-height: 1.5;
+}
+
+.loading-text {
+    color: var(--text-dim);
+    font-style: italic;
+    text-align: center;
+    padding: 1rem;
+}
+
 .modal-btns {
     display: flex;
     justify-content: space-between;
@@ -395,7 +471,8 @@ h3 {
     gap: 1rem;
 }
 
-.danger-btn, .success-btn {
+.danger-btn,
+.success-btn {
     padding: 0.6rem 1.2rem;
     border: none;
     border-radius: 6px;
@@ -404,8 +481,23 @@ h3 {
     font-size: 0.8rem;
 }
 
-.danger-btn { background: var(--error); color: white; }
-.success-btn { background: var(--success); color: black; }
+.danger-btn {
+    background: var(--error);
+    color: white;
+}
 
-.error-msg { color: var(--error); font-size: 0.8rem; margin-top: 1rem; }
-.status-msg { font-size: 0.8rem; margin-top: 1rem; }
+.success-btn {
+    background: var(--success);
+    color: black;
+}
+
+.error-msg {
+    color: var(--error);
+    font-size: 0.8rem;
+    margin-top: 1rem;
+}
+
+.status-msg {
+    font-size: 0.8rem;
+    margin-top: 1rem;
+}

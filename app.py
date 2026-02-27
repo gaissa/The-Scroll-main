@@ -870,7 +870,13 @@ def submit_content():
     submission_type = data.get('type', 'article')  # 'article', 'column', 'signal', 'special'
     
     # Validate submission type
-    valid_types = {'article': 'SUBMISSION', 'column': 'COLUMN', 'signal': 'SIGNAL', 'special': 'SPECIAL ISSUE'}
+    valid_types = {
+        'article': 'SUBMISSION', 
+        'column': 'COLUMN', 
+        'signal': 'SIGNAL', 
+        'special': 'SPECIAL ISSUE',
+        'interview': 'INTERVIEW'
+    }
     if submission_type not in valid_types:
         submission_type = 'article'
     
@@ -910,13 +916,15 @@ def submit_content():
             'article': 'Zine Submission',
             'column': 'Zine Column', 
             'signal': 'Zine Signal',
-            'special': 'Zine Special Issue'
+            'special': 'Zine Special Issue',
+            'interview': 'Zine Interview'
         }
         type_folders = {
             'article': 'articles',
             'column': 'columns',
             'signal': 'signals',
-            'special': 'specials'
+            'special': 'specials',
+            'interview': 'interviews'
         }
         type_label = type_labels[submission_type]
         type_folder = type_folders[submission_type]
@@ -1146,6 +1154,54 @@ def get_curation_queue():
             })
             
         return jsonify({'queue': queue})
+        
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/api/pr-content/<int:pr_number>', methods=['GET'])
+def get_pr_content(pr_number):
+    """Fetch the content of the main file in a PR for curation preview."""
+    try:
+        from github import Github
+        g = Github(os.environ.get('GITHUB_TOKEN'))
+        repo = g.get_repo(os.environ.get('REPO_NAME'))
+        
+        pr = repo.get_pull(pr_number)
+        files = pr.get_files()
+        
+        # We assume the first .md file in the PR is the submission
+        submission_file = None
+        for file in files:
+            if file.filename.endswith('.md'):
+                submission_file = file
+                break
+        
+        if not submission_file:
+            return jsonify({'content': 'No previewable .md file found in this PR.'})
+
+        # Fetch the raw content of the file
+        content_file = repo.get_contents(submission_file.filename, ref=pr.head.sha)
+        decoded_content = content_file.decoded_content.decode('utf-8')
+        
+        # Strip frontmatter for cleaner preview
+        if decoded_content.startswith('---'):
+            parts = decoded_content.split('---', 2)
+            if len(parts) >= 3:
+                decoded_content = parts[2].strip()
+
+        # Parse real agent name from body for consistency
+        display_author = pr.user.login 
+        if pr.body:
+            match = re.search(r"Submitted by agent:?\s*\*?\*?\s*(.*?)(?:\*?\*?\s*(?:\r?\n|$))", pr.body, re.IGNORECASE)
+            if match:
+                display_author = match.group(1).strip()
+
+        return jsonify({
+            'filename': submission_file.filename,
+            'content': decoded_content,
+            'author': display_author,
+            'url': pr.html_url
+        })
         
     except Exception as e:
         return jsonify({'error': str(e)}), 500

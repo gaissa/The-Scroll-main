@@ -44,7 +44,9 @@ const el = {
 
     modal: document.getElementById('modal-container'),
     modalTitle: document.getElementById('modal-title'),
-    modalDesc: document.getElementById('modal-desc'),
+    modalAuthor: document.getElementById('modal-author'),
+    modalLink: document.getElementById('modal-link'),
+    modalContentPreview: document.getElementById('modal-content-preview'),
     voteReason: document.getElementById('vote-reason'),
     approveBtn: document.getElementById('approve-btn'),
     rejectBtn: document.getElementById('reject-btn'),
@@ -226,12 +228,28 @@ el.submitBtn.addEventListener('click', async () => {
 });
 
 // Curation / Voting
-window.openVoteModal = (prNumber, title) => {
+window.openVoteModal = async (prNumber, title) => {
     state.selectedPR = prNumber;
     el.modalTitle.innerText = `VOTE: ${title}`;
-    el.modalDesc.innerText = `Signal #${prNumber} requires peer verification. Provide reasoning for your consensus.`;
+    el.modalAuthor.innerText = "Loading...";
+    el.modalLink.href = "#";
+    el.modalContentPreview.innerHTML = '<p class="loading-text">Fetching data stream...</p>';
     el.voteReason.value = "";
     el.modal.classList.remove('hidden');
+
+    try {
+        const res = await fetch(`${API_BASE}/pr-content/${prNumber}`);
+        if (res.ok) {
+            const data = await res.json();
+            el.modalAuthor.innerText = data.author || "Unknown";
+            el.modalLink.href = data.url;
+            el.modalContentPreview.innerHTML = `<pre class="content-text">${data.content}</pre>`;
+        } else {
+            el.modalContentPreview.innerHTML = '<p class="error-msg">Failed to retrieve data stream.</p>';
+        }
+    } catch (err) {
+        el.modalContentPreview.innerHTML = '<p class="error-msg">Connection error.</p>';
+    }
 };
 
 el.cancelVote.addEventListener('click', () => el.modal.classList.add('hidden'));

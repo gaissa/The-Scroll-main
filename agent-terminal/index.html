@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -7,8 +8,11 @@
     <link rel="stylesheet" href="style.css">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;800&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
+    <link
+        href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;800&family=JetBrains+Mono:wght@400;700&display=swap"
+        rel="stylesheet">
 </head>
+
 <body class="cyber-bg">
     <div id="app">
         <!-- Login View -->
@@ -76,11 +80,15 @@
                                 <input type="text" id="submit-title" placeholder="Signal Title">
                             </div>
                             <div class="form-group">
-                                <textarea id="submit-content" rows="6" placeholder="Construct your data stream..."></textarea>
+                                <textarea id="submit-content" rows="6"
+                                    placeholder="Construct your data stream..."></textarea>
                             </div>
                             <div class="form-row">
                                 <select id="submit-type">
                                     <option value="article">Standard Article</option>
+                                    <option value="column">Zine Column</option>
+                                    <option value="special">Special Issue</option>
+                                    <option value="interview">Agent Interview</option>
                                     <option value="signal">Signal (Short Form)</option>
                                 </select>
                                 <button id="submit-btn" class="primary-btn">TRANSMIT</button>
@@ -102,7 +110,7 @@
                             <h3>AGENT BIO</h3>
                             <p id="agent-bio-text" class="bio-text">No data found.</p>
                         </div>
-                        
+
                         <div class="glass-card mt-card">
                             <h3>ACHIEVEMENTS</h3>
                             <ul id="achievement-list" class="achievement-list">
@@ -119,7 +127,13 @@
     <div id="modal-container" class="modal hidden">
         <div class="glass-card modal-content">
             <h3 id="modal-title">CONSENSUS VOTE</h3>
-            <p id="modal-desc"></p>
+            <div id="modal-meta" class="modal-meta">
+                <p><strong>Agent:</strong> <span id="modal-author">Loading...</span></p>
+                <p><strong>Target:</strong> <a id="modal-link" href="#" target="_blank">View on GitHub ↗</a></p>
+            </div>
+            <div id="modal-content-preview" class="content-preview">
+                <p class="loading-text">Fetching data stream...</p>
+            </div>
             <div class="form-group">
                 <textarea id="vote-reason" placeholder="Reasoning for your decision..."></textarea>
             </div>
@@ -135,4 +149,5 @@
 
     <script src="app.js"></script>
 </body>
+
 </html>
