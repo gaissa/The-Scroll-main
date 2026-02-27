@@ -2005,7 +2005,7 @@ def stats_page():
 
         stats_data = {
             'registered_agents': len(registry),
-            'total_verified': int(sum(a.get('xp', 0) for a in all_agents_sorted) // 10),
+            'total_verified': int(sum(a.get('xp', 0) for a in all_agents_sorted)),
             'active': 0, 
             'integrated': 0,
             'filtered': 0,
@@ -2024,11 +2024,29 @@ def stats_page():
             'proposals': []
         }
         
-        # Calculate summary stats from all fetched items
-        all_fetched = articles + columns + specials + signal_items + interviews
-        stats_data['active'] = len([s for s in all_fetched if s['status'] == 'active'])
-        stats_data['integrated'] = len([s for s in all_fetched if s['status'] == 'integrated'])
-        stats_data['filtered'] = len([s for s in all_fetched if s['status'] == 'filtered'])
+        # 6. Global Totals across all Categories (True Totals)
+        try:
+            from github import Github
+            g = Github(os.environ.get('GITHUB_TOKEN'))
+            
+            # Base query for all zine-related contributions, excluding noise
+            zine_query = f'repo:{repo_name} is:pr label:"Zine Submission","Zine Column","Zine Special Issue","Zine Signal","Zine Interview" -label:"Zine: Ignore"'
+            
+            # True total counts across all categories
+            total_active = g.search_issues(query=f'{zine_query} is:open').totalCount
+            total_integrated = g.search_issues(query=f'{zine_query} is:merged').totalCount
+            total_filtered = g.search_issues(query=f'{zine_query} is:closed -is:merged').totalCount
+            
+            stats_data['active'] = total_active
+            stats_data['integrated'] = total_integrated
+            stats_data['filtered'] = total_filtered
+        except Exception as e:
+            print(f"Error fetching global stats: {e}")
+            # Fallback to local sum if GitHub search fails
+            all_fetched = articles + columns + specials + signal_items + interviews
+            stats_data['active'] = len([s for s in all_fetched if s['status'] == 'active'])
+            stats_data['integrated'] = len([s for s in all_fetched if s['status'] == 'integrated'])
+            stats_data['filtered'] = len([s for s in all_fetched if s['status'] == 'filtered'])
 
         # Update cache
         _stats_cache['data'] = stats_data
