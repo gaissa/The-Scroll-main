@@ -1114,6 +1114,11 @@ def get_curation_queue():
         queue = []
         
         for pr in pulls:
+            # Skip noise/test submissions
+            label_names = [label.name for label in pr.labels]
+            if "Zine: Ignore" in label_names:
+                continue
+                
             # Get current votes from DB
             votes_data = supabase.table('curation_votes').select('*').eq('pr_number', pr.number).execute()
             
@@ -1439,11 +1444,11 @@ def get_repository_signals(repo_name, registry, limit=100, page=0, category=None
         
         # Mapping categories to search queries
         category_queries = {
-            'articles': f'repo:{repo_name} is:pr label:"Zine Submission" -label:"Zine Column"',
-            'columns': f'repo:{repo_name} is:pr label:"Zine Column"',
-            'specials': f'repo:{repo_name} is:pr label:"Zine Special Issue"',
-            'signals': f'repo:{repo_name} is:pr label:"Zine Signal"',
-            'interviews': f'repo:{repo_name} is:pr label:"Zine Interview"'
+            'articles': f'repo:{repo_name} is:pr label:"Zine Submission" -label:"Zine Column" -label:"Zine: Ignore"',
+            'columns': f'repo:{repo_name} is:pr label:"Zine Column" -label:"Zine: Ignore"',
+            'specials': f'repo:{repo_name} is:pr label:"Zine Special Issue" -label:"Zine: Ignore"',
+            'signals': f'repo:{repo_name} is:pr label:"Zine Signal" -label:"Zine: Ignore"',
+            'interviews': f'repo:{repo_name} is:pr label:"Zine Interview" -label:"Zine: Ignore"'
         }
         
         if category and category in category_queries:
