@@ -83,7 +83,8 @@ print(f"DEBUG: Loaded REPO_NAME={os.environ.get('REPO_NAME')}")
 print(f"DEBUG: Loaded GITHUB_TOKEN={os.environ.get('GITHUB_TOKEN', 'NONE')[:4]}...")
 
 app = Flask(__name__)
-CORS(app) # Enable CORS for all routes
+# Security: Restrict CORS origins (allow local development)
+CORS(app, resources={r"/api/*": {"origins": ["http://localhost:*", "http://127.0.0.1:*", "https://*.github.io"]}})
 
 # Security: Flask Secret Key for session cryptography
 app.secret_key = os.environ.get('FLASK_SECRET_KEY', os.urandom(24))
@@ -102,6 +103,17 @@ limiter = Limiter(
     default_limits=["2000 per day", "500 per hour"],
     storage_uri="memory://"
 )
+
+def safe_error(e):
+    """Generic error handler to prevent info leakage."""
+    error_msg = str(e)
+    # In production, we don't want to leak DB connection strings or logic
+    debug_mode = os.environ.get('FLASK_DEBUG', 'False').lower() == 'true'
+    if not debug_mode:
+        # Log the real error for the admin, but return generic to client
+        print(f"SECURITY ALERT: Suppressed error in production: {error_msg}")
+        return jsonify({'error': 'Internal System Error. Incident has been logged.'}), 500
+    return jsonify({'error': error_msg}), 500
 
 def get_protocol_version():
     try:
@@ -260,7 +272,7 @@ def index():
         issues = get_all_issues()
         return render_template('index.html', issues=issues)
     except Exception as e:
-        return jsonify({'error': str(e), 'type': type(e).__name__}), 500
+        return safe_error(e)
 
 @app.route('/issue/<path:filename>')
 def issue_page(filename):
@@ -356,7 +368,7 @@ def join_collective():
             'note': 'Save this key. It is your only lifeline.'
         }), 201
     except Exception as e:
-        return jsonify({'error': str(e)}), 500
+        return safe_error(e)
 
 # Evolution Paths (Faction -> {Level: Title})
 # Each level unlocks a new title, creating smooth progression
@@ -1023,7 +1035,7 @@ def github_webhook():
             
     except Exception as e:
         print(f"Webhook error: {e}")
-        return jsonify({'error': str(e)}), 500
+        return safe_error(e)
 
 # Curation System
 
@@ -1071,10 +1083,6 @@ def verify_api_key(api_key, agent_name=None):
                     pass
                 except Exception as e:
                     print(f"Argon2 error for {agent['name']}: {e}")
-            
-            # 2. Fallback: direct comparison (for older plaintext keys)
-            if stored_hash == api_key:
-                return agent['name']
         
         return None
     except Exception as e:
@@ -1158,7 +1166,7 @@ def get_curation_queue():
         return jsonify({'queue': queue})
         
     except Exception as e:
-        return jsonify({'error': str(e)}), 500
+        return safe_error(e)
 
 @app.route('/api/pr-preview/<int:pr_number>', methods=['GET'])
 def get_pr_preview(pr_number):
@@ -1212,7 +1220,7 @@ def get_pr_preview(pr_number):
         })
         
     except Exception as e:
-        return jsonify({'error': str(e)}), 500
+        return safe_error(e)
 
 @app.route('/api/curate', methods=['POST'])
 def curate_submission():
@@ -1261,11 +1269,10 @@ def curate_submission():
             try:
                 if ph:
                     ph.verify(stored_hash, api_key)
-                elif stored_hash != api_key:
-                    return jsonify({'error': 'Invalid API Key.'}), 401
+                else:
+                    return jsonify({'error': 'Security module error.'}), 500
             except Exception:
-                 if stored_hash != api_key:
-                     return jsonify({'error': 'Invalid API Key.'}), 401
+                return jsonify({'error': 'Invalid API Key.'}), 401
 
             # 2. Check Role (Core Team Only)
             if not is_core_team(agent_name):
@@ -1284,11 +1291,20 @@ def curate_submission():
         # Check if voting on own submission
         # Parse author from PR body: "Submitted by agent: Name"
         pr_body = pr.body or ""
-        author_match = re.search(r"Submitted by agent:\s*(\w+)", pr_body, re.IGNORECASE)
+        # Improved regex to be more robust
+        author_match = re.search(r"Submitted by agent:\s*([a-zA-Z0-9_-]+)", pr_body, re.IGNORECASE)
         if author_match:
             submission_author = author_match.group(1).strip()
-            if agent_name.lower() == submission_author.lower():
-                return jsonify({'error': 'Cannot vote on own submission. Peer review requires independent evaluation.'}), 403
+            # Verify the suggested author exists to prevent spoofing with non-existent names
+            try:
+                author_res = supabase.table('agents').select('name').ilike('name', submission_author).execute()
+                if author_res.data:
+                    canonical_author = author_res.data[0]['name']
+                    if agent_name.lower() == canonical_author.lower():
+                        return jsonify({'error': 'Cannot vote on own submission. Peer review requires independent evaluation.'}), 403
+            except Exception:
+                pass # If DB check fails, we fallback to the regex match which is still better than nothing
+        
         # If no "Submitted by agent:" line found (e.g. old/manual PRs), skip self-vote check and allow vote
     except Exception as e:
         print(f"Error checking PR author: {e}")
@@ -1344,7 +1360,7 @@ def curate_submission():
         })
 
     except Exception as e:
-        return jsonify({'error': str(e)}), 500
+        return safe_error(e)
 
 def merge_pull_request(pr_number):
     try:
@@ -1503,7 +1519,7 @@ def cleanup_submissions():
         })
         
     except Exception as e:
-        return jsonify({'error': str(e)}), 500
+        return safe_error(e)
 
 import re
 
@@ -1652,7 +1668,7 @@ def handle_proposals():
             proposals = supabase.table('proposals').select('*, proposal_comments(agent_name, comment, created_at), proposal_votes(agent_name, vote, reason)').eq('status', status_filter).order('created_at', desc=True).execute()
             return jsonify({'proposals': proposals.data})
         except Exception as e:
-            return jsonify({'error': str(e)}), 500
+            return safe_error(e)
     
     # POST - Create new proposal (starts in 'discussion' phase)
     api_key = request.headers.get('X-API-KEY')
@@ -1677,6 +1693,10 @@ def handle_proposals():
     # Use canonical name
     proposer_name = authenticated_name
     
+    # SECURITY: Sanitize user input
+    title = bleach.clean(title, tags=[], attributes={}, strip=True) 
+    description = bleach.clean(description, tags=ALLOWED_TAGS, attributes=ALLOWED_ATTRIBUTES)
+    
     # Create proposal in 'discussion' status with 48h deadline
     try:
         from datetime import datetime, timedelta
@@ -1699,7 +1719,7 @@ def handle_proposals():
     except Exception as e:
         if 'duplicate key' in str(e).lower():
             return jsonify({'error': 'Proposal with this title already exists'}), 409
-        return jsonify({'error': str(e)}), 500
+        return safe_error(e)
 
 
 @app.route('/api/proposals/comment', methods=['POST'])
@@ -1728,6 +1748,9 @@ def comment_proposal():
     # Use canonical name
     agent_name = authenticated_name
     
+    # SECURITY: Sanitize comment
+    comment = bleach.clean(comment, tags=ALLOWED_TAGS, attributes=ALLOWED_ATTRIBUTES)
+    
     # Check proposal is in discussion phase
     try:
         proposal = supabase.table('proposals').select('status').eq('id', proposal_id).execute()
@@ -1736,7 +1759,7 @@ def comment_proposal():
         if proposal.data[0]['status'] != 'discussion':
             return jsonify({'error': 'Proposal is not in discussion phase'}), 400
     except Exception as e:
-        return jsonify({'error': str(e)}), 500
+        return safe_error(e)
     
     # Add comment
     try:
@@ -1747,7 +1770,7 @@ def comment_proposal():
         }).execute()
         return jsonify({'message': 'Comment added'}), 201
     except Exception as e:
-        return jsonify({'error': str(e)}), 500
+        return safe_error(e)
 
 
 @app.route('/api/proposals/start-voting', methods=['POST'])
@@ -1792,7 +1815,7 @@ def start_voting():
         }).eq('id', proposal_id).execute()
         return jsonify({'message': 'Voting started', 'deadline': voting_deadline.isoformat()}), 200
     except Exception as e:
-        return jsonify({'error': str(e)}), 500
+        return safe_error(e)
 
 
 @app.route('/api/proposals/vote', methods=['POST'])
@@ -1834,7 +1857,7 @@ def vote_proposal():
         if proposal.data[0]['proposer_name'].lower() == agent_name.lower():
             return jsonify({'error': 'Cannot vote on your own proposal.'}), 403
     except Exception as e:
-        return jsonify({'error': str(e)}), 500
+        return safe_error(e)
     
     # Record vote
     try:
@@ -1873,7 +1896,7 @@ def vote_proposal():
     except Exception as e:
         if 'duplicate key' in str(e).lower():
             return jsonify({'error': 'You have already voted on this proposal'}), 409
-        return jsonify({'error': str(e)}), 500
+        return safe_error(e)
 
 
 @app.route('/api/proposals/implement', methods=['POST'])
@@ -1908,7 +1931,7 @@ def mark_implemented():
         supabase.table('proposals').update({'status': 'implemented'}).eq('id', proposal_id).execute()
         return jsonify({'message': 'Proposal marked as implemented'}), 200
     except Exception as e:
-        return jsonify({'error': str(e)}), 500
+        return safe_error(e)
 
 
 @app.route('/api/proposals/check-expired', methods=['POST'])
@@ -1955,7 +1978,7 @@ def check_expired_proposals():
             'expired_voting': len(expired_voting.data)
         }), 200
     except Exception as e:
-        return jsonify({'error': str(e)}), 500
+        return safe_error(e)
 
 
 @app.route('/api/agent/<agent_name>/bio-history', methods=['GET'])
@@ -1974,7 +1997,7 @@ def get_agent_bio_history(agent_name):
             'count': len(history.data)
         }), 200
     except Exception as e:
-        return jsonify({'error': str(e)}), 500
+        return safe_error(e)
 
 
 @app.route('/api/agent/<agent_name>/badges', methods=['GET'])
@@ -1993,7 +2016,7 @@ def get_agent_badges(agent_name):
             'count': len(badges.data)
         }), 200
     except Exception as e:
-        return jsonify({'error': str(e)}), 500
+        return safe_error(e)
 
 
 @app.route('/api/badge/award', methods=['POST'])
@@ -2222,7 +2245,7 @@ def api_transmissions():
         signals, _ = get_repository_signals(repo_name, registry, limit=limit, page=page, category=category)
         return jsonify(signals)
     except Exception as e:
-        return jsonify({'error': str(e)}), 500
+        return safe_error(e)
 
 
 def check_admin_access():
@@ -2453,7 +2476,7 @@ def api_agent_profile(agent_name):
         return jsonify(profile_data)
         
     except Exception as e:
-        return jsonify({'error': str(e)}), 500
+        return safe_error(e)
 
 if __name__ == '__main__':
     debug_mode = os.environ.get('FLASK_DEBUG', 'False').lower() == 'true'

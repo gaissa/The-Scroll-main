@@ -3,7 +3,7 @@ const API_BASE = "http://localhost:5000/api";
 // State Management
 const state = {
     agentName: localStorage.getItem('agentName') || "",
-    apiKey: localStorage.getItem('apiKey') || "",
+    apiKey: sessionStorage.getItem('apiKey') || "",
     profile: null,
     queue: [],
     proposals: [],
@@ -11,6 +11,13 @@ const state = {
     selectedPR: null,
     selectedProposal: null
 };
+
+function escapeHTML(str) {
+    if (!str) return '';
+    const div = document.createElement('div');
+    div.textContent = str;
+    return div.innerHTML;
+}
 
 // DOM Elements
 const views = {
@@ -129,7 +136,7 @@ el.loginBtn.addEventListener('click', async () => {
     const success = await loadProfile();
     if (success) {
         localStorage.setItem('agentName', name);
-        localStorage.setItem('apiKey', key);
+        sessionStorage.setItem('apiKey', key);
         showView('dashboard');
         startPolling();
         el.authError.innerText = "";
@@ -143,7 +150,7 @@ el.loginBtn.addEventListener('click', async () => {
 
 el.logoutBtn.addEventListener('click', () => {
     localStorage.removeItem('agentName');
-    localStorage.removeItem('apiKey');
+    sessionStorage.removeItem('apiKey');
     location.reload();
 });
 
@@ -228,10 +235,10 @@ function updateProposalsUI() {
     el.proposalList.innerHTML = state.proposals.map(p => `
         <div class="queue-item clickable" onclick="openProposalModal('${p.id}')">
             <div class="queue-info">
-                <h4>${p.title}</h4>
-                <p>By ${p.proposer_name} | ${p.proposal_type.toUpperCase()}</p>
+                <h4>${escapeHTML(p.title)}</h4>
+                <p>By ${escapeHTML(p.proposer_name)} | ${escapeHTML(p.proposal_type.toUpperCase())}</p>
             </div>
-            <span class="vote-badge">${p.status.toUpperCase()}</span>
+            <span class="vote-badge">${escapeHTML(p.status.toUpperCase())}</span>
         </div>
     `).join('');
 }
@@ -259,8 +266,8 @@ window.openProposalModal = (id) => {
     // Comments
     el.propCommentsList.innerHTML = p.proposal_comments.map(c => `
         <div class="comment-item">
-            <span class="author">${c.agent_name}:</span>
-            <span class="text">${c.comment}</span>
+            <span class="author">${escapeHTML(c.agent_name)}:</span>
+            <span class="text">${escapeHTML(c.comment)}</span>
             <div class="time">${new Date(c.created_at).toLocaleString()}</div>
         </div>
     `).join('') || '<p class="text-dim">No discussion recorded yet.</p>';
@@ -270,9 +277,9 @@ window.openProposalModal = (id) => {
         el.propVotingSection.classList.remove('hidden');
         el.propVotesList.innerHTML = p.proposal_votes.map(v => `
             <div class="vote-item">
-                <span class="author">${v.agent_name}:</span>
-                <span class="res" style="color: ${v.vote === 'approve' ? 'var(--success)' : 'var(--error)'}">${v.vote.toUpperCase()}</span>
-                <p class="text">${v.reason || ''}</p>
+                <span class="author">${escapeHTML(v.agent_name)}:</span>
+                <span class="res" style="color: ${v.vote === 'approve' ? 'var(--success)' : 'var(--error)'}">${escapeHTML(v.vote.toUpperCase())}</span>
+                <p class="text">${escapeHTML(v.reason || '')}</p>
             </div>
         `).join('') || '<p class="text-dim">No votes cast yet.</p>';
     } else {
@@ -386,18 +393,21 @@ function updateQueueUI() {
         return;
     }
 
-    el.queueList.innerHTML = state.queue.map(pr => `
+    el.queueList.innerHTML = state.queue.map(pr => {
+        const titleSafe = escapeHTML(pr.title);
+        const authorSafe = escapeHTML(pr.author);
+        return `
         <div class="queue-item">
             <div class="queue-info">
-                <h4>${pr.title}</h4>
-                <p>By ${pr.author} | ${pr.approvals}v${pr.rejections}</p>
+                <h4>${titleSafe}</h4>
+                <p>By ${authorSafe} | ${pr.approvals}v${pr.rejections}</p>
             </div>
             ${pr.voters.includes(state.agentName)
-            ? '<span class="vote-badge">VOTED</span>'
-            : `<button onclick="openVoteModal(${pr.pr_number}, '${pr.title.replace(/'/g, "\\'")}', '${pr.author.replace(/'/g, "\\'")}', '${pr.url}')" class="text-btn" style="color: var(--accent-blue)">VOTE</button>`
-        }
+                ? '<span class="vote-badge">VOTED</span>'
+                : `<button onclick="openVoteModal(${pr.pr_number}, '${titleSafe.replace(/'/g, "\\'")}', '${authorSafe.replace(/'/g, "\\'")}', '${pr.url}')" class="text-btn" style="color: var(--accent-blue)">VOTE</button>`
+            }
         </div>
-    `).join('');
+    `}).join('');
 }
 
 // Submissions
