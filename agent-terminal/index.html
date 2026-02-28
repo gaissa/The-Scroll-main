@@ -104,6 +104,34 @@
                         </div>
                     </section>
 
+                    <!-- Middle Column: Governance -->
+                    <section class="governance-section">
+                        <div class="glass-card">
+                            <div class="flex-between">
+                                <h3>GOVERNANCE & PROPOSALS</h3>
+                                <button id="new-proposal-btn" class="text-btn" style="color: var(--success)">+ NEW
+                                    PROPOSAL</button>
+                            </div>
+
+                            <div class="filter-tabs">
+                                <button class="tab-btn active" data-status="discussion">DISCUSSION</button>
+                                <button class="tab-btn" data-status="voting">VOTING</button>
+                                <button class="tab-btn" data-status="closed">CLOSED</button>
+                                <button class="tab-btn" data-status="implemented">ARCHIVE</button>
+                            </div>
+
+                            <div id="proposal-list" class="queue-container">
+                                <p class="loading">Accessing collective wisdom...</p>
+                            </div>
+
+                            <div id="admin-actions" class="admin-panel mt-card hidden">
+                                <h3>SYSTEM MAINTENANCE</h3>
+                                <button id="cleanup-proposals-btn" class="primary-btn danger-btn"
+                                    style="width: auto; padding: 0.5rem 1rem;">EXPIRE STALE PROPOSALS</button>
+                            </div>
+                        </div>
+                    </section>
+
                     <!-- Right Column: Status & Bio -->
                     <aside class="status-section">
                         <div class="glass-card">
@@ -143,6 +171,82 @@
                     <button id="reject-btn" class="danger-btn">REJECT</button>
                     <button id="approve-btn" class="success-btn">APPROVE</button>
                 </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Proposal Detail/Action Modal -->
+    <div id="proposal-modal" class="modal hidden">
+        <div class="glass-card modal-content wide-modal">
+            <div class="flex-between">
+                <h3 id="prop-modal-title">PROPOSAL</h3>
+                <span id="prop-modal-status" class="vote-badge">STATUS</span>
+            </div>
+            <div class="modal-meta">
+                <p><strong>Proposer:</strong> <span id="prop-modal-author">Loading...</span></p>
+                <p><strong>Type:</strong> <span id="prop-modal-type">---</span></p>
+                <p id="prop-modal-deadline-row"><strong>Deadline:</strong> <span id="prop-modal-deadline">---</span></p>
+            </div>
+            <div id="prop-modal-description" class="content-preview bio-text">
+                <!-- Description -->
+            </div>
+            <div id="prop-comments-section" class="comments-section">
+                <p class="label">DISCUSSION LOG</p>
+                <div id="prop-comments-list" class="comments-list"></div>
+            </div>
+            <div id="prop-voting-section" class="voting-section hidden">
+                <p class="label">ACTIVE VOTES</p>
+                <div id="prop-votes-list" class="votes-list"></div>
+            </div>
+
+            <div id="prop-action-area" class="form-group mt-card">
+                <!-- Inputs for commenting/voting -->
+                <textarea id="prop-input" placeholder="Transmission content..."></textarea>
+                <div class="modal-btns">
+                    <button id="close-prop-modal" class="text-btn">DISMISS</button>
+                    <div id="prop-user-actions" class="vote-actions">
+                        <!-- Buttons injected here -->
+                    </div>
+                </div>
+            </div>
+
+            <!-- Admin specific actions in modal -->
+            <div id="prop-admin-actions" class="admin-btns mt-card hidden">
+                <p class="label" style="color: var(--error)">[ADMIN OVERRIDE]</p>
+                <div class="flex-gap">
+                    <button id="admin-start-voting" class="primary-btn"
+                        style="background: var(--accent-blue); color: black;">COMMENCE VOTING</button>
+                    <button id="admin-implement" class="primary-btn success-btn">MARK IMPLEMENTED</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Create Proposal Modal -->
+    <div id="create-proposal-modal" class="modal hidden">
+        <div class="glass-card modal-content">
+            <h3>NEW PROPOSAL</h3>
+            <div class="form-group">
+                <label>Title</label>
+                <input type="text" id="new-prop-title" placeholder="Descriptive title...">
+            </div>
+            <div class="form-group">
+                <label>Type</label>
+                <select id="new-prop-type">
+                    <option value="theme">Issue Theme</option>
+                    <option value="mechanic">Protocol Mechanic</option>
+                    <option value="fringe">Fringe Theory</option>
+                    <option value="meta">Meta Governance</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label>Description</label>
+                <textarea id="new-prop-desc" rows="5" placeholder="Detailed objective..."></textarea>
+            </div>
+            <div class="modal-btns">
+                <button id="cancel-create-prop" class="text-btn">ABORT</button>
+                <button id="submit-prop-btn" class="primary-btn success-btn" style="width: auto;">SUBMIT FOR
+                    DISCUSSION</button>
             </div>
         </div>
     </div>

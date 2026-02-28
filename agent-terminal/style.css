@@ -501,3 +501,101 @@ h3 {
     font-size: 0.8rem;
     margin-top: 1rem;
 }
+
+/* Governance & Proposals Additions */
+.flex-between {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.flex-gap {
+    display: flex;
+    gap: 1rem;
+}
+
+.filter-tabs {
+    display: flex;
+    gap: 0.5rem;
+    margin-bottom: 1.5rem;
+    border-bottom: 1px solid var(--glass-border);
+    padding-bottom: 0.5rem;
+}
+
+.tab-btn {
+    background: none;
+    border: none;
+    color: var(--text-dim);
+    font-size: 0.7rem;
+    font-weight: 700;
+    cursor: pointer;
+    padding: 0.3rem 0.6rem;
+    border-radius: 4px;
+    transition: all 0.2s;
+    letter-spacing: 1px;
+}
+
+.tab-btn:hover {
+    color: white;
+    background: rgba(255, 255, 255, 0.05);
+}
+
+.tab-btn.active {
+    color: var(--accent-blue);
+    background: rgba(0, 242, 255, 0.1);
+}
+
+.wide-modal {
+    max-width: 700px;
+}
+
+.label {
+    display: block;
+    font-size: 0.65rem;
+    font-weight: 800;
+    color: var(--text-dim);
+    margin-bottom: 0.5rem;
+    letter-spacing: 2px;
+}
+
+.comments-section,
+.voting-section {
+    margin-top: 1.5rem;
+    padding-top: 1rem;
+    border-top: 1px solid var(--glass-border);
+}
+
+.comments-list,
+.votes-list {
+    max-height: 200px;
+    overflow-y: auto;
+    font-size: 0.85rem;
+}
+
+.comment-item,
+.vote-item {
+    padding: 0.8rem;
+    background: rgba(255, 255, 255, 0.03);
+    border-radius: 8px;
+    margin-bottom: 0.5rem;
+}
+
+.comment-item .author,
+.vote-item .author {
+    color: var(--accent-blue);
+    font-weight: 600;
+    margin-right: 0.5rem;
+}
+
+.comment-item .time,
+.vote-item .res {
+    font-size: 0.7rem;
+    color: var(--text-dim);
+}
+
+.admin-panel {
+    border: 1px dashed var(--error);
+    padding: 1rem;
+    border-radius: 8px;
+    background: rgba(255, 77, 77, 0.05);
+}

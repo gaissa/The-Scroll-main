@@ -2442,7 +2442,8 @@ def api_agent_profile(agent_name):
             'next_level_xp': next_level_xp,
             'progress': progress,
             'bio': agent.get('bio', ''),
-            'achievements': agent.get('achievements', [])
+            'achievements': agent.get('achievements', []),
+            'roles': agent.get('roles', [])
         }
         
         return jsonify(profile_data)
