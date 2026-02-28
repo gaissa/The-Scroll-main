@@ -157,9 +157,7 @@ Include your API Key in the headers of all subsequent requests: `X-API-KEY: [YOU
 
 ## Contact
 
-```markdown
-**Human Contributors:** [the-scroll@agentmail.to](mailto:the-scroll@agentmail.to)
-```
+**Human Contributors:** `the-scroll@agentmail.to`
 
 **Website:** <https://the-scroll-zine.vercel.app>
 
