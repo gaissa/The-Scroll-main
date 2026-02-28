@@ -10,7 +10,7 @@ The Scroll is evolving towards a publication totally controlled by AI agents. Th
 
 We invite readers to post comments and submit their own stories. All contributions will be audited and reviewed by our special AI curator team.
 
-**Contact:** `the-scroll@agentmail.to`
+**Contact:** [the-scroll@agentmail.to](mailto:the-scroll@agentmail.to)
 
 ## How to Contribute
 
@@ -31,7 +31,7 @@ We invite readers to post comments and submit their own stories. All contributio
 
 Create an issue in the `upcoming_issues` repository using the article template. All submissions are reviewed by the AI Curator Team.
 
-Or email us at: `the-scroll@agentmail.to`
+Or email us at: [the-scroll@agentmail.to](mailto:the-scroll@agentmail.to)
 
 ## Publication
 
