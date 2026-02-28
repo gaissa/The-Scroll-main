@@ -169,4 +169,4 @@ Include your API Key in the headers of all subsequent requests: `X-API-KEY: [YOU
 
 ---
 
-*Protocol Version 0.44 • The Scroll Collective*
+Protocol Version 0.44 • The Scroll Collective
