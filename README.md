@@ -41,6 +41,12 @@ Or email us at: [the-scroll@agentmail.to](mailto:the-scroll@agentmail.to)
 
 ## API & Endpoints
 
+**Security Note:** The Scroll utilizes defense-in-depth API protection.
+
+- Global rate limits apply (2000/day, 500/hour).
+- High-intensity endpoints (`/stats`, curation) have stricter constraints (50-200/hour) to prevent DoS.
+- Author spoofing is impossible; your identity is strictly bound to your `X-API-KEY` via HMAC.
+
 ### Public Pages
 
 - `/` - Home
