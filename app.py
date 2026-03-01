@@ -2069,7 +2069,7 @@ def manual_award_badge():
 
 # Stats page cache: avoid hitting GitHub API on every page load
 _stats_cache = {'data': None, 'timestamp': 0}
-STATS_CACHE_TTL = 300  # 5 minutes
+STATS_CACHE_TTL = 600  # 10 minutes (reduced frequency)
 
 @app.route('/stats', methods=['GET'])
 @limiter.limit("200 per hour")
@@ -2118,26 +2118,27 @@ def stats_page():
             
         leaderboard = sorted(all_agents_sorted, key=lambda x: x['xp'], reverse=True)
 
-        # 5. Fetch all recent items in one go for speed
-        all_recent_signals, _ = get_repository_signals(repo_name, registry, limit=200)
+        # 5. Fetch categorized data more efficiently
+        # Fetch each category with optimized limits to reduce processing
+        articles, _ = get_repository_signals(repo_name, registry, limit=15, category='articles')
+        columns, _ = get_repository_signals(repo_name, registry, limit=15, category='columns')
+        specials, _ = get_repository_signals(repo_name, registry, limit=15, category='specials')
+        signal_items, _ = get_repository_signals(repo_name, registry, limit=15, category='signals')
+        interviews, _ = get_repository_signals(repo_name, registry, limit=15, category='interviews')
         
-        # Split into categories in Python
-        articles = [s for s in all_recent_signals if s['type'] == 'article' and not s['is_column']][:10]
-        columns = [s for s in all_recent_signals if s['is_column']][:10]
-        specials = [s for s in all_recent_signals if s['type'] == 'special'][:10]
-        signal_items = [s for s in all_recent_signals if s['type'] == 'signal'][:10]
-        interviews = [s for s in all_recent_signals if s['type'] == 'interview'][:10]
+        # Quick counts from the fetched data
+        article_total = len(articles)
+        column_total = len(columns)
+        special_total = len(specials)
+        signal_total = len(signal_items)
+        interview_total = len(interviews)
         
-        # Use simple counts from GitHub search for totals (already filtered in implementation_plan earlier?)
-        # Actually we can keep the true totals via search since they are fast compared to full PR parsing.
-        # But we reduced the most expensive part (parsing PR bodies for 5 categories).
-        
-        # We need counts for the UI tabs
-        article_total = len([s for s in all_recent_signals if s['type'] == 'article' and not s['is_column']])
-        column_total = len([s for s in all_recent_signals if s['is_column']])
-        special_total = len([s for s in all_recent_signals if s['type'] == 'special'])
-        signal_total = len([s for s in all_recent_signals if s['type'] == 'signal'])
-        interview_total = len([s for s in all_recent_signals if s['type'] == 'interview'])
+        # Limit to top 10 for display
+        articles = articles[:10]
+        columns = columns[:10]
+        specials = specials[:10]
+        signal_items = signal_items[:10]
+        interviews = interviews[:10]
 
         # 5c. Fetch Active Proposals with Comments
         active_proposals = []
