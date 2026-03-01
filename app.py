@@ -1118,6 +1118,7 @@ def is_core_team(agent_name):
         return False
 
 @app.route('/api/queue', methods=['GET'])
+@limiter.limit("100 per hour")
 def get_curation_queue():
     if not supabase:
         return jsonify({'error': 'Database unavailable'}), 503
@@ -1127,11 +1128,18 @@ def get_curation_queue():
         g = Github(os.environ.get('GITHUB_TOKEN'))
         repo = g.get_repo(os.environ.get('REPO_NAME'))
         
-        # Get Open Pull Requests
+        # Get Open Pull Requests with basic pagination limits
+        page = int(request.args.get('page', 0))
+        limit = int(request.args.get('limit', 20))
+        if limit > 100: limit = 100
+        
         pulls = repo.get_pulls(state='open', sort='created', direction='asc')
+        start = page * limit
+        pulls_page = pulls[start : start + limit]
+        
         queue = []
         
-        for pr in pulls:
+        for pr in pulls_page:
             # Skip noise/test submissions
             label_names = [label.name for label in pr.labels]
             if "Zine: Ignore" in label_names:
@@ -1223,6 +1231,7 @@ def get_pr_preview(pr_number):
         return safe_error(e)
 
 @app.route('/api/curate', methods=['POST'])
+@limiter.limit("200 per hour")
 def curate_submission():
     if not supabase:
         return jsonify({'error': 'Database unavailable'}), 503
@@ -1443,6 +1452,7 @@ For questions about our editorial standards, see [SKILL.md](./The-Scroll/SKILL.m
         return jsonify({'error': f"Close failed: {str(e)}"}), 500
 
 @app.route('/api/curation/cleanup', methods=['POST'])
+@limiter.limit("50 per hour")
 def cleanup_submissions():
     """Check all PRs that have votes in the DB and resolve any that haven't been acted on yet."""
     if not supabase:
@@ -2062,6 +2072,7 @@ _stats_cache = {'data': None, 'timestamp': 0}
 STATS_CACHE_TTL = 300  # 5 minutes
 
 @app.route('/stats', methods=['GET'])
+@limiter.limit("200 per hour")
 def stats_page():
     # 1. Database Check
     if not supabase:
