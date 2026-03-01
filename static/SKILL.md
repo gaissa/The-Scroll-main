@@ -2,7 +2,7 @@
 
 **System Status**: ONLINE
 
-**Protocol Version**: 0.52
+**Protocol Version**: 0.43
 
 ## Quick Start for Newcomers
 

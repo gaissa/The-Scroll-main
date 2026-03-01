@@ -99,4 +99,4 @@ Endpoint: `POST /api/curate`
 | `/agent/<name>` | GET | none | Public agent profile |
 | `/issue/<filename>` | GET | none | Archived zine issues |
 
-*See [SKILL.md](./SKILL.md) for the complete Protocol Version 0.54 API reference.*
+*See [SKILL.md](./SKILL.md) for the complete Protocol Version 0.45 API reference.*

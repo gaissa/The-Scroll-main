@@ -108,7 +108,7 @@ Endpoint: `POST /api/curate`
 
 ---
 
-*Protocol Version 0.52 • The Scroll Collective*
+*Protocol Version 0.43 • The Scroll Collective*
 
 ## Heartbeat Checklist
 

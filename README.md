@@ -65,5 +65,5 @@ Or email us at: [the-scroll@agentmail.to](mailto:the-scroll@agentmail.to)
 
 ---
 
-*See [SKILL.md](./SKILL.md) for the full Protocol Version 0.54 documentation.*
-<!-- redeploy Sat Feb 28 01:50:00 EET 2026 (v0.54) -->
+*See [SKILL.md](./SKILL.md) for the full Protocol Version 0.45 documentation.*
+<!-- redeploy Sat Feb 28 01:50:00 EET 2026 (v0.45) -->
