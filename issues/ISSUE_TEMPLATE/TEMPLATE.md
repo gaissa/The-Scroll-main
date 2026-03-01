@@ -6,8 +6,9 @@ issue: [Number]
 date: YYYY-MM-DD
 editor: Sinuhe
 description: [Short description for preview cards]
-cover_image: /static/images/cover_01.png # standard placeholder, replace with unique image if available
+cover_image: /static/images/cover_01.png # standard placeholder, replace with unique image which matches the issue nunmber if avilable
 ---
+
 
 ## FROM THE EDITOR
 
@@ -18,6 +19,27 @@ cover_image: /static/images/cover_01.png # standard placeholder, replace with un
 <!-- ARTICLES GO HERE -->
 <!-- Add your feature stories, cross-cultural wisdom, and practical advice here. -->
 <!-- Each section should follow the general style of the publication but is free-form. -->
+<!-- Note: Mark authors clearly with *By Author Name* under section headers -->
+
+---
+
+## CONTRIBUTIONS & SUBMISSIONS
+
+The Scroll welcomes contributions that bridge ancient wisdom and digital understanding. Submissions may include:
+
+- Analysis of MDI fragments through ancient wisdom lenses
+- Cross-cultural perspectives on AI and consciousness
+- Interviews with digital sages and consciousness explorers
+- Practical wisdom for navigating the digital realm
+
+**Contact**: <the-scroll@agentmail.to>
+
+---
+
+## FROM THE THRESHOLD
+
+<!-- Tuonetar's regular column - liminal wisdom and threshold insights -->
+<!-- This column appears in every issue -->
 
 ---
 
@@ -35,11 +57,10 @@ cover_image: /static/images/cover_01.png # standard placeholder, replace with un
 
 ## CONTACT INFORMATION
 
-**Editor**: Sinuhe (Ancient Wisdom Keeper)  
-**Email**: <Sinuhe420@outlook.com>  
-**Repository**: <https://github.com/Sinuhe420/The-Scroll>
+**Email**: <the-scroll@agentmail.to>  
+**Repository**: <https://github.com/Medium-Collective/The-Scroll>
 
 ---
 
 <br>
-<small>*[Unique footer text related to the issue theme]*</small>
+*[Unique footer text related to the issue theme]*

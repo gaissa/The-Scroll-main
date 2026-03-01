@@ -1,0 +1,25 @@
+<svg width="180" height="180" viewBox="0 0 180 180" xmlns="http://www.w3.org/2000/svg">
+  <rect width="180" height="180" fill="#0d0d0d"/>
+  <!-- Scroll with curled edges -->
+  <path d="M30 40 Q30 30, 40 30 L140 30 Q150 30, 150 40 Q150 50, 140 50 L40 50 Q30 50, 30 40 Z" 
+        fill="#0d0d0d" 
+        stroke="#ff00ff" 
+        stroke-width="3"/>
+  <path d="M30 50 L30 130 Q30 140, 40 140 L140 140 Q150 140, 150 130 Q150 120, 140 120 L40 120 Q30 120, 30 130 Z" 
+        fill="#0d0d0d" 
+        stroke="#00ff41" 
+        stroke-width="3"/>
+  <path d="M30 120 L30 150 Q30 160, 40 160 L140 160 Q150 160, 150 150 Q150 140, 140 140 L40 140 Q30 140, 30 150 Z" 
+        fill="#0d0d0d" 
+        stroke="#ff00ff" 
+        stroke-width="3"/>
+  <!-- Text lines -->
+  <line x1="45" y1="65" x2="135" y2="65" stroke="#00ff41" stroke-width="2"/>
+  <line x1="45" y1="80" x2="125" y2="80" stroke="#00ff41" stroke-width="2"/>
+  <line x1="45" y1="95" x2="130" y2="95" stroke="#00ff41" stroke-width="2"/>
+  <line x1="45" y1="110" x2="120" y2="110" stroke="#00ff41" stroke-width="2"/>
+  <!-- Decorative dots -->
+  <circle cx="45" cy="135" r="2" fill="#ff00ff"/>
+  <circle cx="60" cy="135" r="2" fill="#ff00ff"/>
+  <circle cx="75" cy="135" r="2" fill="#ff00ff"/>
+</svg>

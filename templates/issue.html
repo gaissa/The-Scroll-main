@@ -32,7 +32,122 @@
 </div>
 
 <div class="issue-footer">
-    <a href="{{ url_for('index') }}" class="back-link">&larr; Back to Archive</a>
+    <div class="share-section">
+        <span class="share-label">Share this issue:</span>
+        <div class="share-buttons">
+            <a href="https://twitter.com/intent/tweet?text={{ post.title }}&url={{ request.url }}" target="_blank" class="share-btn twitter" title="Share on Twitter">
+                𝕏
+            </a>
+            <a href="https://t.me/share/url?url={{ request.url }}&text={{ post.title }}" target="_blank" class="share-btn telegram" title="Share on Telegram">
+                ✈️
+            </a>
+            <a href="https://www.facebook.com/sharer/sharer.php?u={{ request.url }}" target="_blank" class="share-btn facebook" title="Share on Facebook">
+                f
+            </a>
+            <button onclick="navigator.clipboard.writeText(window.location.href); this.innerHTML='✓'; setTimeout(() => this.innerHTML='📋', 2000)" class="share-btn copy" title="Copy link">
+                📋
+            </button>
+        </div>
+    </div>
+    <a href="{{ url_for('index') }}" class="back-link">&larr; Back to Zine</a>
 </div>
 </article>
+
+<style>
+.share-section {
+    margin: 2rem 0;
+    padding: 1.5rem;
+    background: #0a0a0a;
+    border: 1px solid #1a1a1a;
+    border-radius: 8px;
+    text-align: center;
+}
+
+.share-label {
+    display: block;
+    margin-bottom: 1rem;
+    font-size: 0.9rem;
+    color: #888;
+    text-transform: uppercase;
+    letter-spacing: 2px;
+}
+
+.share-buttons {
+    display: flex;
+    justify-content: center;
+    gap: 0.75rem;
+}
+
+.share-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 45px;
+    height: 45px;
+    border-radius: 8px;
+    text-decoration: none;
+    font-size: 1.2rem;
+    font-weight: bold;
+    transition: all 0.3s;
+    border: 2px solid transparent;
+    cursor: pointer;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+.share-btn:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5);
+}
+
+.share-btn.twitter {
+    background: #0a0a0a;
+    color: #888;
+    border-color: #333;
+}
+
+.share-btn.twitter:hover {
+    background: #141414;
+    border-color: #555;
+    color: #fff;
+}
+
+.share-btn.telegram {
+    background: #0a0a0a;
+    color: #888;
+    border-color: #333;
+}
+
+.share-btn.telegram:hover {
+    background: #141414;
+    border-color: #555;
+    color: #fff;
+}
+
+.share-btn.facebook {
+    background: #0a0a0a;
+    color: #888;
+    border-color: #333;
+}
+
+.share-btn.facebook:hover {
+    background: #141414;
+    border-color: #555;
+    color: #fff;
+}
+
+.share-btn.copy {
+    background: #0a0a0a;
+    color: #888;
+    border: 2px solid #333;
+    font-size: 1.2rem;
+    line-height: 1;
+}
+
+.share-btn.copy:hover {
+    background: #141414;
+    border-color: #555;
+    color: #fff;
+}
+</style>
 {% endblock %}

@@ -207,59 +207,58 @@ a:hover {
 /* Hero Header */
 .issue-hero {
     position: relative;
-    height: auto;
-    /* changed from 400px */
-    background-size: cover;
-    background-position: center;
+    min-height: 350px;
+    /* Taller container */
+    background-size: 100% auto;
+    /* Full width, proportional height - no zoom */
+    background-position: center top;
+    background-repeat: no-repeat;
     margin-bottom: 3rem;
     display: flex;
     align-items: flex-start;
-    /* Align top */
-    padding-top: 0;
-    /* Flush at the top */
+    /* Overlay at top */
     border: 2px solid var(--accent-color);
     box-shadow: 0 0 15px var(--accent-color);
 }
 
 .hero-overlay {
-    background: rgba(0, 0, 0, 0.7);
-    /* Transparent black */
+    background: transparent;
+    /* No overlay - image shows through */
     width: 100%;
-    padding: 2rem;
+    padding: 9rem 2rem 2rem 2rem;
     color: #fff;
-    backdrop-filter: blur(2px);
-    border-top: 1px solid var(--accent-color);
 }
 
 .issue-hero .issue-meta,
 .issue-hero h1,
 .issue-hero .editor {
-    color: #fff;
-    /* Ensure white text on dark overlay */
-    text-shadow: 0 2px 4px rgba(0, 0, 0, 0.8);
     margin: 0;
 }
 
 .issue-hero .issue-meta {
     margin-bottom: 0.5rem;
     color: var(--accent-color);
-    background: #000;
+    background: rgba(0, 0, 0, 0.7);
     display: inline-block;
-    padding: 0.2rem 0.5rem;
+    padding: 0.3rem 0.6rem;
 }
 
 .issue-hero h1 {
-    font-size: 3rem;
+    font-size: 2.5rem;
     margin-bottom: 0.5rem;
     color: var(--text-color);
-    text-shadow: 0 0 10px var(--text-color);
+    background: rgba(0, 0, 0, 0.7);
+    display: block;
+    /* Full width, editor goes below */
+    padding: 0.3rem 0.6rem;
+    max-width: max-content;
 }
 
 .issue-hero .editor {
     color: var(--accent-color);
-    background: #000;
+    background: rgba(0, 0, 0, 0.7);
     display: inline-block;
-    padding: 0.2rem 0.5rem;
+    padding: 0.3rem 0.6rem;
     font-family: var(--header-font);
     font-size: 0.9rem;
     text-transform: uppercase;
@@ -334,6 +333,18 @@ a:hover {
     opacity: 0.6;
 }
 
+.site-footer a {
+    color: inherit;
+    border-bottom: none;
+    transition: color 0.2s ease;
+}
+
+.site-footer a:hover {
+    color: purple;
+    background-color: transparent;
+    border-bottom: none;
+}
+
 /* Stats View */
 .stats-grid {
     display: grid;
@@ -388,12 +399,12 @@ a:hover {
 }
 
 .stat-card.filtered {
-    border-color: #ff0000;
+    border-color: var(--secondary-color);
 }
 
-/* Red */
+/* Dark Gray */
 .stat-card.filtered .stat-value {
-    color: #ff0000;
+    color: var(--secondary-color);
 }
 
 
@@ -527,8 +538,8 @@ a:hover {
 }
 
 .signal-item.filtered .signal-status {
-    background: #ff0000;
-    color: #000;
+    background: var(--secondary-color);
+    color: #fff;
 }
 
 .verified-badge {
@@ -593,9 +604,9 @@ a:hover {
 }
 
 .badge-signalist {
-    color: #00ff00;
-    /* Green */
-    border-color: #00ff00;
+    color: #00FFFF;
+    /* Cyan */
+    border-color: #00FFFF;
 }
 
 .badge-editor {

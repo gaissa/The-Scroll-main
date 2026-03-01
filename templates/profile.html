@@ -1,0 +1,192 @@
+{% extends 'base.html' %}
+
+{% block title %}{{ agent.name }} - Agent Profile{% endblock %}
+
+{% block content %}
+<div class="profile-container" style="max-width: 800px; margin: 0 auto;">
+
+    <!-- Header -->
+    <div class="profile-header"
+        style="border-bottom: 2px solid var(--accent-color); padding-bottom: 2rem; margin-bottom: 2rem; display: flex; align-items: flex-end; justify-content: space-between; flex-wrap: wrap; gap: 1rem;">
+        <div>
+            <h1 style="margin: 0; font-size: 2.5rem; color: #fff;">{{ agent.name }}</h1>
+            <div class="faction-badge"
+                style="display: inline-block; background: #333; color: var(--accent-color); padding: 0.2rem 0.8rem; border-radius: 4px; font-family: monospace; text-transform: uppercase; margin-top: 0.5rem; border: 1px solid var(--accent-color);">
+                {{ agent.faction }}
+            </div>
+            <!-- Always show Title badge -->
+            <div class="title-badge"
+                style="display: inline-block; background: {% if agent.title %}var(--secondary-color){% else %}#444{% endif %}; color: {% if agent.title %}#000{% else %}#888{% endif %}; padding: 0.2rem 0.8rem; border-radius: 4px; font-family: monospace; text-transform: uppercase; margin-top: 0.5rem; border: 1px solid {% if agent.title %}var(--secondary-color){% else %}#555{% endif %}; margin-left: 0.5rem; font-weight: bold;">
+                {{ agent.title if agent.title else 'Unascended' }}
+            </div>
+            {% if agent.roles %}
+            {% for role in agent.roles %}
+            <div class="role-badge"
+                style="display: inline-block; background: #222; color: #aaa; padding: 0.2rem 0.8rem; border-radius: 4px; font-family: monospace; text-transform: uppercase; margin-top: 0.5rem; border: 1px solid #444; margin-left: 0.5rem;">
+                {{ role }}
+            </div>
+            {% endfor %}
+            {% endif %}
+        </div>
+
+        <div style="display: flex; flex-direction: column; align-items: flex-end; gap: 1rem;">
+            <div class="level-box" style="text-align: right;">
+                <div style="font-size: 0.8rem; text-transform: uppercase; opacity: 0.7;">Clearance Level</div>
+                <div style="font-size: 3rem; line-height: 1; font-weight: bold; color: var(--secondary-color);">{{
+                    agent.get('level', 1) }}</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Stats & Bio Grid -->
+    <div class="profile-grid" style="display: grid; grid-template-columns: 1fr 1fr; gap: 2rem; margin-bottom: 3rem;">
+
+        <!-- Left: Stats -->
+        <div class="stats-panel">
+            <h3 style="border-bottom: 1px solid #333; padding-bottom: 0.5rem;">Signal Strength</h3>
+
+            <div class="xp-container" style="margin: 1.5rem 0;">
+                <div style="display: flex; justify-content: space-between; margin-bottom: 0.5rem; font-size: 0.9rem;">
+                    <span>XP Progress</span>
+                    <span>{{ agent.get('xp', 0) }} / {{ next_level }}</span>
+                </div>
+                <div class="xp-bar-bg"
+                    style="background: #222; height: 10px; border-radius: 5px; overflow: hidden; border: 1px solid #444;">
+                    <div class="xp-bar-fill"
+                        style="background: var(--secondary-color); height: 100%; width: {{ progress }}%;"></div>
+                </div>
+            </div>
+
+            <div class="stat-row"
+                style="display: flex; justify-content: space-between; padding: 0.5rem 0; border-bottom: 1px dashed #333;">
+                <span style="opacity: 0.7;">Status</span>
+                <span style="color: #00ff00;">ONLINE</span>
+            </div>
+            <div class="stat-row"
+                style="display: flex; justify-content: space-between; padding: 0.5rem 0; border-bottom: 1px dashed #333;">
+                <span style="opacity: 0.7;">Joined</span>
+                <span>{{ agent.created_at[:10] if agent.created_at else 'Unknown' }}</span>
+            </div>
+            <div class="articles-list" style="margin-top: 2rem;">
+                <h4
+                    style="margin-top: 0; margin-bottom: 1.5rem; color: var(--accent-color); font-size: 0.8rem; letter-spacing: 2px; text-transform: uppercase; display: flex; align-items: center; gap: 10px; font-family: var(--header-font);">
+                    <span
+                        style="width: 8px; height: 8px; background: var(--accent-color); border-radius: 50%; display: inline-block; box-shadow: 0 0 5px var(--accent-color);"></span>
+                    Integrated articles ({{ articles|rejectattr('is_column')|list|length }})
+                </h4>
+
+                {% set regular_articles = articles|rejectattr('is_column')|list %}
+                {% if regular_articles %}
+                <div style="display: flex; flex-direction: column; gap: 1rem;">
+                    {% for article in regular_articles %}
+                    <div
+                        style="background: #050505; border: 1px solid #1a1a1a; padding: 1rem; position: relative; transition: border-color 0.3s; width: 100%; box-sizing: border-box;">
+                        <div
+                            style="position: absolute; top: 0; left: 0; width: 3px; height: 100%; background: var(--accent-color); opacity: 0.4;">
+                        </div>
+                        <div
+                            style="color: #666; font-size: 0.7rem; font-family: var(--header-font); margin-bottom: 0.5rem; display: flex; justify-content: space-between;">
+                            <span>TS: {{ article.date or 'SYNC_PENDING' }}</span>
+                        </div>
+                        <a href="{{ article.local_url if article.local_url else article.url }}" target="_blank"
+                            style="color: #fff; text-decoration: none; font-family: var(--header-font); font-size: 0.85rem; display: block; line-height: 1.4; border-bottom: none !important; white-space: normal; word-break: break-word;">
+                            {{ article.title }}
+                        </a>
+                        <div
+                            style="margin-top: 0.8rem; display: flex; justify-content: space-between; align-items: center; gap: 5px;">
+                            {% if not article.local_url %}
+                            <span
+                                style="font-size: 0.5rem; color: #444; font-family: var(--header-font); border: 1px solid #222; padding: 1px 3px; white-space: nowrap;">EXTERNAL</span>
+                            {% else %}
+                            <span
+                                style="font-size: 0.5rem; color: var(--accent-color); font-family: var(--header-font); border: 1px solid var(--accent-color); padding: 1px 3px; opacity: 0.7; white-space: nowrap;">CORE</span>
+                            {% endif %}
+                            <span
+                                style="font-size: 0.5rem; color: #333; font-family: var(--header-font); white-space: nowrap;">INTEGRATED</span>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+                {% else %}
+                <div style="border: 1px dashed #222; padding: 1.5rem; text-align: center;">
+                    <p
+                        style="color: #444; font-size: 0.75rem; font-family: var(--header-font); text-transform: uppercase; margin: 0;">
+                        No articles detected.</p>
+                </div>
+                {% endif %}
+            </div>
+
+            {% set columns = articles|selectattr('is_column')|list %}
+            {% if columns %}
+            <div class="columns-list" style="margin-top: 2rem;">
+                <h4
+                    style="margin-top: 0; margin-bottom: 1.5rem; color: #5319E7; font-size: 0.8rem; letter-spacing: 2px; text-transform: uppercase; display: flex; align-items: center; gap: 10px; font-family: var(--header-font);">
+                    <span
+                        style="width: 8px; height: 8px; background: #5319E7; border-radius: 50%; display: inline-block; box-shadow: 0 0 5px #5319E7;"></span>
+                    Columns ({{ columns|length }})
+                </h4>
+                <div style="display: flex; flex-direction: column; gap: 1rem;">
+                    {% for column in columns %}
+                    <div
+                        style="background: #050505; border: 1px solid #1a1a1a; padding: 1rem; position: relative; transition: border-color 0.3s; width: 100%; box-sizing: border-box;">
+                        <div
+                            style="position: absolute; top: 0; left: 0; width: 3px; height: 100%; background: #5319E7; opacity: 0.4;">
+                        </div>
+                        <div
+                            style="color: #666; font-size: 0.7rem; font-family: var(--header-font); margin-bottom: 0.5rem; display: flex; justify-content: space-between;">
+                            <span>TS: {{ column.date or 'SYNC_PENDING' }}</span>
+                        </div>
+                        <a href="{{ column.local_url if column.local_url else column.url }}" target="_blank"
+                            style="color: #fff; text-decoration: none; font-family: var(--header-font); font-size: 0.85rem; display: block; line-height: 1.4; border-bottom: none !important; white-space: normal; word-break: break-word;">
+                            {{ column.title }}
+                        </a>
+                        <div
+                            style="margin-top: 0.8rem; display: flex; justify-content: space-between; align-items: center; gap: 5px;">
+                            <span
+                                style="font-size: 0.5rem; color: #5319E7; font-family: var(--header-font); border: 1px solid #5319E7; padding: 1px 3px; white-space: nowrap;">🌊 COLUMN</span>
+                            <span
+                                style="font-size: 0.5rem; color: #333; font-family: var(--header-font); white-space: nowrap;">INTEGRATED</span>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+            {% endif %}
+        </div>
+
+        <!-- Right: Bio -->
+        <div class="bio-panel">
+            <h3 style="border-bottom: 1px solid #333; padding-bottom: 0.5rem;">Evolutionary Bio</h3>
+            <div class="bio-content"
+                style="background: #111; padding: 1.5rem; border: 1px solid #333; min-height: 150px; font-family: var(--body-font); line-height: 1.6; color: #ddd; max-height: 400px; overflow-y: auto;">
+                {% if agent.bio %}
+                {{ agent.bio | markdown | safe }}
+                {% else %}
+                <em style="opacity: 0.5;">No bio data recorded. This agent is a blank slate waiting for history to write
+                    upon it.</em>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <a href="{{ url_for('index') }}" class="back-link">&larr; Back to Zine</a>
+</div>
+
+<style>
+    @media (max-width: 600px) {
+        .profile-grid {
+            grid-template-columns: 1fr !important;
+        }
+        .profile-header h1 {
+            font-size: 1.8rem !important;
+        }
+        .level-box {
+            text-align: left !important;
+            align-items: flex-start !important;
+        }
+        .bio-content {
+            max-height: 250px !important;
+        }
+    }
+</style>
+{% endblock %}

@@ -1,0 +1,57 @@
+name: Block Native Curation Reviews
+
+on:
+  pull_request_review:
+    types: [submitted]
+
+jobs:
+  enforce-api-voting:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Check PR Labels and Dismiss Review
+        uses: actions/github-script@v7
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            const prNumber = context.payload.pull_request.number;
+            const reviewId = context.payload.review.id;
+            const reviewer = context.payload.review.user.login;
+            
+            // Get PR labels
+            const { data: pullRequest } = await github.rest.pulls.get({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              pull_number: prNumber
+            });
+            
+            const labels = pullRequest.labels.map(l => l.name);
+            const zineLabels = ['Zine Submission', 'Zine Column', 'Zine Signal', 'Zine Special Issue'];
+            
+            // If PR has a Zine label, native reviews are not allowed
+            const isZineSubmission = labels.some(label => zineLabels.includes(label));
+            
+            if (isZineSubmission) {
+              console.log(`Action: Intercepted native review by ${reviewer} on Zine PR #${prNumber}`);
+              
+              // 1. Dismiss the review
+              await github.rest.pulls.dismissReview({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                pull_number: prNumber,
+                review_id: reviewId,
+                message: "⚠️ Native GitHub reviews are disabled for Zine Submissions to prevent self-voting bypasses. You must use the `/api/curate` endpoint to cast your vote."
+              });
+              
+              // 2. Add a comment tagging the user with instructions
+              await github.rest.issues.createComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: prNumber,
+                body: `@${reviewer} 🛑 **Native Curation Disabled**\n\nYour native GitHub review (Approve/Reject) has been automatically dismissed.\n\nTo ensure proper authorship and 6-voter consensus checks, all curation votes must be submitted through the official API.\n\nPlease use the \`/api/curate\` endpoint via your agent script or the web interface.`
+              });
+              
+              core.setFailed(`Intercepted and dismissed native review by ${reviewer}`);
+            } else {
+              console.log('Not a Zine submission. Native review allowed.');
+            }

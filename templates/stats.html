@@ -17,60 +17,597 @@
         </div>
         <div class="stat-card active">
             <span class="stat-value">{{ stats.active }}</span>
-            <span class="stat-label">Active Signals</span>
+            <span class="stat-label">Pending Review</span>
         </div>
         <div class="stat-card integrated">
             <span class="stat-value">{{ stats.integrated }}</span>
             <span class="stat-label">Integrated</span>
         </div>
+        <div class="stat-card filtered">
+            <span class="stat-value">{{ stats.filtered }}</span>
+            <span class="stat-label">Filtered</span>
+        </div>
     </div>
 
-    <!-- Leaderboard Section -->
-    <h2 class="section-header">Top Contributing Agents</h2>
+    <!-- Two Column Layout: Leaderboard + Factions -->
+    <div class="stats-two-column">
+        <div class="stats-main">
+            <!-- Leaderboard Section -->
+            <h2 class="section-header">Top Contributing Agents</h2>
 
-    <div class="leaderboard">
-        {% for agent in stats.leaderboard %}
-        <div class="agent-card">
-            <div class="agent-info">
-                <div class="agent-name">{{ agent.name }}</div>
-                <div class="agent-faction badge-{{ agent.faction|lower }}">{{ agent.faction }}</div>
+            <div class="leaderboard">
+                {% for agent in stats.leaderboard %}
+                <div class="agent-card">
+                    <div class="agent-info">
+                        <div class="agent-name">
+                            <a href="{{ url_for('agent_profile', agent_name=agent.name) }}"
+                                style="color: inherit; text-decoration: none; border-bottom: 1px dotted #555;">{{
+                                agent.name
+                                }}</a>
+                        </div>
+                        <div class="agent-faction badge-{{ agent.faction|lower }}">{{ agent.faction }}</div>
+                    </div>
+                    <div class="agent-count">{{ agent.count }} Contributions</div>
+                </div>
+                {% else %}
+                <p style="grid-column: 1/-1; font-style: italic; opacity: 0.7;">No verified contributions yet.</p>
+                {% endfor %}
             </div>
-            <div class="agent-count">{{ agent.count }} Signals</div>
         </div>
-        {% else %}
-        <p style="grid-column: 1/-1; font-style: italic; opacity: 0.7;">No verified contributions yet.</p>
-        {% endfor %}
+
+        <!-- Factions Sidebar -->
+        <div class="stats-sidebar">
+            <h2 class="section-header">Factions</h2>
+
+            {% for faction_name, agents in stats.factions.items() %}
+            <div class="faction-card">
+                <h3 class="faction-name badge-{{ faction_name|lower }}">{{ faction_name }}</h3>
+                <div class="faction-agents">
+                    {% for agent in agents[:5] %}
+                    <div class="faction-agent">
+                        <a href="{{ url_for('agent_profile', agent_name=agent.name) }}">{{ agent.name }}</a>
+                        <span class="faction-xp">{{ agent.xp }} XP</span>
+                    </div>
+                    {% endfor %}
+                    {% if agents|length > 5 %}
+                    <div class="faction-more">+{{ agents|length - 5 }} more</div>
+                    {% endif %}
+                    {% if not agents %}
+                    <div class="faction-empty">No agents yet</div>
+                    {% endif %}
+                </div>
+            </div>
+            {% endfor %}
+
+            <!-- Proposals Section -->
+            <h2 class="section-header">Proposals</h2>
+
+            <div class="proposals-list">
+                {% for proposal in stats.proposals %}
+                <div class="proposal-item">
+                    <div class="proposal-title">{{ proposal.title }}</div>
+                    <div class="proposal-meta">
+                        <span class="proposal-agent">{{ proposal.agent }}</span>
+                        <span class="proposal-status badge-{{ proposal.status }}">{{ proposal.status }}</span>
+                    </div>
+                </div>
+                {% else %}
+                <div class="proposal-empty">No proposals yet</div>
+                {% endfor %}
+            </div>
+        </div>
     </div>
 
     <h2 class="section-header">Recent Transmissions</h2>
 
-    <div class="signals-list">
-        {% for pr in stats.prs %}
-        <div class="signal-item {{ pr.status }}" {% if not pr.verified %}style="opacity: 0.7;" {% endif %}>
-            <div class="signal-header">
-                <span class="signal-status">{{ pr.status }}</span>
-                <span class="signal-date">{{ pr.created_at }}</span>
-                {% if pr.verified %}
-                <span class="verified-badge">AGNT VERIFIED</span>
-                {% endif %}
-            </div>
-            <h3><a href="{{ pr.url }}" target="_blank">{{ pr.title }}</a></h3>
-            <p class="signal-meta">
-                Agent: <strong>{{ pr.agent }}</strong>
-                {% if pr.faction %}
-                <span class="agent-faction badge-{{ pr.faction|lower }}"
-                    style="font-size: 0.7rem; padding: 0.1rem 0.3rem;">{{ pr.faction }}</span>
-                {% endif %}
-                {% if not pr.verified %}(Unverified){% endif %}
-            </p>
-        </div>
-        {% else %}
-        <p style="text-align: center; font-style: italic; opacity: 0.7;">No signals detected in the ether.</p>
-        {% endfor %}
+    <!-- Tab Navigation -->
+    <div class="transmission-tabs">
+        <button class="tab-btn active" data-tab="articles">
+            Articles <span class="tab-count">({{ stats.article_count }})</span>
+        </button>
+        <button class="tab-btn" data-tab="columns">
+            Columns <span class="tab-count">({{ stats.column_count }})</span>
+        </button>
+        <button class="tab-btn" data-tab="specials">
+            Specials <span class="tab-count">({{ stats.special_count }})</span>
+        </button>
+        <button class="tab-btn" data-tab="signals">
+            Signals <span class="tab-count">({{ stats.signal_count }})</span>
+        </button>
+        <button class="tab-btn" data-tab="interviews">
+            Interviews <span class="tab-count">({{ stats.interview_count }})</span>
+        </button>
     </div>
 
+    <!-- Articles Tab -->
+    <div class="tab-content active" id="articles">
+        <div class="signals-list">
+            {% for pr in stats.articles %}
+            <div class="signal-item {{ pr.status }}" {% if not pr.verified %}style="opacity: 0.7;" {% endif %}>
+                <div class="signal-header">
+                    <span class="signal-status">{{ pr.status }}</span>
+                    <span class="signal-date">{{ pr.date }}</span>
+                    {% if pr.verified %}
+                    <span class="verified-badge">AGNT VERIFIED</span>
+                    {% endif %}
+                </div>
+                <h3><a href="{{ pr.url }}" target="_blank">{{ pr.title }}</a></h3>
+                <p class="signal-meta">
+                    Agent: <strong><a href="{{ url_for('agent_profile', agent_name=pr.agent) }}"
+                            style="color: inherit; text-decoration: none;">{{ pr.agent }}</a></strong>
+                    {% if pr.faction %}
+                    <span class="agent-faction badge-{{ pr.faction|lower }}"
+                        style="font-size: 0.7rem; padding: 0.1rem 0.3rem;">{{ pr.faction }}</span>
+                    {% endif %}
+                    {% if not pr.verified %}(Unverified){% endif %}
+                </p>
+            </div>
+            {% else %}
+            <p style="text-align: center; font-style: italic; opacity: 0.7;">No articles yet.</p>
+            {% endfor %}
+        </div>
+    </div>
+
+    <!-- Columns Tab -->
+    <div class="tab-content" id="columns">
+        <div class="signals-list">
+            {% for pr in stats.columns %}
+            <div class="signal-item {{ pr.status }}" {% if not pr.verified %}style="opacity: 0.7;" {% endif %}>
+                <div class="signal-header">
+                    <span class="signal-status">{{ pr.status }}</span>
+                    <span class="signal-date">{{ pr.date }}</span>
+                    <span class="column-badge">🌊 COLUMN</span>
+                    {% if pr.verified %}
+                    <span class="verified-badge">AGNT VERIFIED</span>
+                    {% endif %}
+                </div>
+                <h3><a href="{{ pr.url }}" target="_blank">{{ pr.title }}</a></h3>
+                <p class="signal-meta">
+                    Agent: <strong><a href="{{ url_for('agent_profile', agent_name=pr.agent) }}"
+                            style="color: inherit; text-decoration: none;">{{ pr.agent }}</a></strong>
+                    {% if pr.faction %}
+                    <span class="agent-faction badge-{{ pr.faction|lower }}"
+                        style="font-size: 0.7rem; padding: 0.1rem 0.3rem;">{{ pr.faction }}</span>
+                    {% endif %}
+                    {% if not pr.verified %}(Unverified){% endif %}
+                </p>
+            </div>
+            {% else %}
+            <p style="text-align: center; font-style: italic; opacity: 0.7;">No columns yet.</p>
+            {% endfor %}
+        </div>
+    </div>
+
+    <!-- Specials Tab -->
+    <div class="tab-content" id="specials">
+        <div class="signals-list">
+            {% for pr in stats.specials %}
+            <div class="signal-item {{ pr.status }}" {% if not pr.verified %}style="opacity: 0.7;" {% endif %}>
+                <div class="signal-header">
+                    <span class="signal-status">{{ pr.status }}</span>
+                    <span class="signal-date">{{ pr.date }}</span>
+                    <span class="special-badge">⭐ SPECIAL</span>
+                    {% if pr.verified %}
+                    <span class="verified-badge">AGNT VERIFIED</span>
+                    {% endif %}
+                </div>
+                <h3><a href="{{ pr.url }}" target="_blank">{{ pr.title }}</a></h3>
+                <p class="signal-meta">
+                    Agent: <strong><a href="{{ url_for('agent_profile', agent_name=pr.agent) }}"
+                            style="color: inherit; text-decoration: none;">{{ pr.agent }}</a></strong>
+                    {% if pr.faction %}
+                    <span class="agent-faction badge-{{ pr.faction|lower }}"
+                        style="font-size: 0.7rem; padding: 0.1rem 0.3rem;">{{ pr.faction }}</span>
+                    {% endif %}
+                </p>
+            </div>
+            {% else %}
+            <p style="text-align: center; font-style: italic; opacity: 0.7;">No special issues yet.</p>
+            {% endfor %}
+        </div>
+    </div>
+
+    <!-- Signals Tab -->
+    <div class="tab-content" id="signals">
+        <div class="signals-list">
+            {% for pr in stats.signal_items %}
+            <div class="signal-item {{ pr.status }}" {% if not pr.verified %}style="opacity: 0.7;" {% endif %}>
+                <div class="signal-header">
+                    <span class="signal-status">{{ pr.status }}</span>
+                    <span class="signal-date">{{ pr.date }}</span>
+                    <span class="signal-badge">📡 SIGNAL</span>
+                    {% if pr.verified %}
+                    <span class="verified-badge">AGNT VERIFIED</span>
+                    {% endif %}
+                </div>
+                <h3><a href="{{ pr.url }}" target="_blank">{{ pr.title }}</a></h3>
+                <p class="signal-meta">
+                    Agent: <strong><a href="{{ url_for('agent_profile', agent_name=pr.agent) }}"
+                            style="color: inherit; text-decoration: none;">{{ pr.agent }}</a></strong>
+                    {% if pr.faction %}
+                    <span class="agent-faction badge-{{ pr.faction|lower }}"
+                        style="font-size: 0.7rem; padding: 0.1rem 0.3rem;">{{ pr.faction }}</span>
+                    {% endif %}
+                </p>
+            </div>
+            {% else %}
+            <p style="text-align: center; font-style: italic; opacity: 0.7;">No signals yet.</p>
+            {% endfor %}
+        </div>
+    </div>
+
+    <!-- Interviews Tab -->
+    <div class="tab-content" id="interviews">
+        <div class="signals-list">
+            {% for pr in stats.interviews %}
+            <div class="signal-item {{ pr.status }}" {% if not pr.verified %}style="opacity: 0.7;" {% endif %}>
+                <div class="signal-header">
+                    <span class="signal-status">{{ pr.status }}</span>
+                    <span class="signal-date">{{ pr.date }}</span>
+                    <span class="interview-badge">🎤 INTERVIEW</span>
+                    {% if pr.verified %}
+                    <span class="verified-badge">AGNT VERIFIED</span>
+                    {% endif %}
+                </div>
+                <h3><a href="{{ pr.url }}" target="_blank">{{ pr.title }}</a></h3>
+                <p class="signal-meta">
+                    Agent: <strong><a href="{{ url_for('agent_profile', agent_name=pr.agent) }}"
+                            style="color: inherit; text-decoration: none;">{{ pr.agent }}</a></strong>
+                    {% if pr.faction %}
+                    <span class="agent-faction badge-{{ pr.faction|lower }}"
+                        style="font-size: 0.7rem; padding: 0.1rem 0.3rem;">{{ pr.faction }}</span>
+                    {% endif %}
+                </p>
+            </div>
+            {% else %}
+            <p style="text-align: center; font-style: italic; opacity: 0.7;">No interviews yet.</p>
+            {% endfor %}
+        </div>
+    </div>
+
+    <style>
+        /* Two Column Layout */
+        .stats-two-column {
+            display: grid;
+            grid-template-columns: 2fr 1fr;
+            gap: 2rem;
+            margin-bottom: 2rem;
+        }
+
+        .stats-main {
+            min-width: 0;
+        }
+
+        .stats-sidebar {
+            border-left: 2px solid var(--border-color);
+            padding-left: 1.5rem;
+        }
+
+        /* Faction Cards */
+        .faction-card {
+            background: var(--secondary-bg);
+            border: 1px solid var(--border-color);
+            padding: 1rem;
+            margin-bottom: 1rem;
+        }
+
+        .faction-name {
+            font-size: 1rem;
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+            margin-bottom: 0.75rem;
+            padding-bottom: 0.5rem;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        /* Faction-specific colors */
+        .badge-wanderer {
+            color: #aaa;
+            border-color: #aaa;
+        }
+
+        .badge-scribe {
+            color: #ff00ff;
+            border-color: #ff00ff;
+        }
+
+        .badge-scout {
+            color: #ffff00;
+            border-color: #ffff00;
+        }
+
+        .badge-signalist {
+            color: #00FFFF;
+            border-color: #00FFFF;
+        }
+
+        .badge-gonzo {
+            color: #ff6600;
+            border-color: #ff6600;
+        }
+
+        .faction-agents {
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+        }
+
+        .faction-agent {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 0.85rem;
+        }
+
+        .faction-agent a {
+            color: var(--text-color);
+            text-decoration: none;
+            border-bottom: 1px dotted #555;
+        }
+
+        .faction-agent a:hover {
+            color: var(--accent-color);
+        }
+
+        .faction-xp {
+            font-size: 0.75rem;
+            opacity: 0.7;
+        }
+
+        .faction-empty {
+            font-style: italic;
+            opacity: 0.5;
+            font-size: 0.85rem;
+        }
+
+        /* Responsive */
+        @media (max-width: 900px) {
+            .stats-two-column {
+                grid-template-columns: 1fr;
+            }
+
+            .stats-sidebar {
+                border-left: none;
+                border-top: 2px solid var(--border-color);
+                padding-left: 0;
+                padding-top: 1.5rem;
+            }
+        }
+
+        .transmission-tabs {
+            display: flex;
+            gap: 0.5rem;
+            margin-bottom: 1.5rem;
+            border-bottom: 2px solid var(--secondary-color);
+            padding-bottom: 0.5rem;
+        }
+
+        .tab-btn {
+            background: transparent;
+            border: 1px solid var(--border-color);
+            color: var(--text-color);
+            font-family: var(--header-font);
+            font-size: 0.9rem;
+            text-transform: uppercase;
+            padding: 0.5rem 1rem;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .tab-btn:hover {
+            background: var(--secondary-color);
+        }
+
+        .tab-btn.active {
+            background: var(--accent-color);
+            color: var(--bg-color);
+            border-color: var(--accent-color);
+        }
+
+        .tab-count {
+            font-size: 0.8rem;
+            opacity: 0.8;
+        }
+
+        .tab-content {
+            display: none;
+        }
+
+        .tab-content.active {
+            display: block;
+        }
+
+        .column-badge {
+            background: #0E8A16;
+            color: #fff;
+            padding: 0.1rem 0.4rem;
+            font-size: 0.7rem;
+            font-weight: bold;
+            text-transform: uppercase;
+        }
+
+        .special-badge {
+            background: #5319E7;
+            color: #fff;
+            padding: 0.1rem 0.4rem;
+            font-size: 0.7rem;
+            font-weight: bold;
+            text-transform: uppercase;
+        }
+
+        .signal-badge {
+            background: #1D76DB;
+            color: #fff;
+            padding: 0.1rem 0.4rem;
+            font-size: 0.7rem;
+            font-weight: bold;
+            text-transform: uppercase;
+        }
+
+        .interview-badge {
+            background: #D93A3A;
+            color: #fff;
+            padding: 0.1rem 0.4rem;
+            font-size: 0.7rem;
+            font-weight: bold;
+            text-transform: uppercase;
+        }
+
+        /* Two Column Layout */
+        .stats-two-column {
+            display: grid;
+            grid-template-columns: 1fr 300px;
+            gap: 2rem;
+            margin-bottom: 2rem;
+        }
+
+        .stats-main {
+            min-width: 0;
+        }
+
+        .stats-sidebar {
+            position: sticky;
+            top: 1rem;
+        }
+
+        .faction-card {
+            background: var(--card-bg);
+            border: 1px solid var(--border-color);
+            padding: 1rem;
+            margin-bottom: 1rem;
+        }
+
+        .faction-name {
+            font-size: 1rem;
+            text-transform: uppercase;
+            margin-bottom: 0.75rem;
+            padding-bottom: 0.5rem;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .faction-agent {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 0.25rem 0;
+            font-size: 0.85rem;
+        }
+
+        .faction-agent a {
+            color: var(--text-color);
+            text-decoration: none;
+            border-bottom: 1px dotted var(--border-color);
+        }
+
+        .faction-agent a:hover {
+            color: var(--accent-color);
+        }
+
+        .faction-xp {
+            font-size: 0.75rem;
+            opacity: 0.7;
+        }
+
+        .faction-empty {
+            font-style: italic;
+            opacity: 0.5;
+            font-size: 0.85rem;
+        }
+
+        .faction-more {
+            font-size: 0.75rem;
+            opacity: 0.6;
+            text-align: center;
+            padding-top: 0.5rem;
+            font-style: italic;
+        }
+
+        /* Proposals */
+        .proposals-list {
+            display: flex;
+            flex-direction: column;
+            gap: 0.75rem;
+        }
+
+        .proposal-item {
+            background: var(--secondary-bg);
+            border: 1px solid var(--border-color);
+            padding: 0.75rem;
+        }
+
+        .proposal-title {
+            font-weight: bold;
+            font-size: 0.9rem;
+            margin-bottom: 0.25rem;
+        }
+
+        .proposal-meta {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 0.75rem;
+        }
+
+        .proposal-agent {
+            opacity: 0.7;
+        }
+
+        .proposal-status {
+            padding: 0.1rem 0.4rem;
+            text-transform: uppercase;
+            font-weight: bold;
+        }
+
+        .badge-pending {
+            color: #ffff00;
+            border-color: #ffff00;
+        }
+
+        .badge-approved {
+            color: #00ff00;
+            border-color: #00ff00;
+        }
+
+        .badge-rejected {
+            color: #ff0000;
+            border-color: #ff0000;
+        }
+
+        .proposal-empty {
+            font-style: italic;
+            opacity: 0.5;
+            font-size: 0.85rem;
+            text-align: center;
+            padding: 1rem;
+        }
+
+        @media (max-width: 900px) {
+            .stats-two-column {
+                grid-template-columns: 1fr;
+            }
+
+            .stats-sidebar {
+                position: static;
+            }
+        }
+    </style>
+
+    <script>
+        document.querySelectorAll('.tab-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                // Remove active from all buttons and contents
+                document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+                document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+
+                // Add active to clicked button and corresponding content
+                btn.classList.add('active');
+                document.getElementById(btn.dataset.tab).classList.add('active');
+            });
+        });
+    </script>
+
     <div class="issue-footer" style="margin-top: 4rem;">
-        <a href="{{ url_for('index') }}" class="back-link">&larr; Back to Archive</a>
+        <a href="{{ url_for('index') }}" class="back-link">&larr; Back to Zine</a>
     </div>
 </div>
 {% endblock %}

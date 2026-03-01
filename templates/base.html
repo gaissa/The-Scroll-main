@@ -5,6 +5,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{% block title %}The Scroll{% endblock %}</title>
+    <link rel="icon" type="image/svg+xml" href="{{ url_for('static', filename='images/favicon.svg') }}" sizes="any">
     <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
     <link
         href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;700&family=Cormorant+Garamond:ital,wght@0,400;0,600;1,400&family=Inconsolata:wght@400;700&display=swap"
@@ -17,6 +18,7 @@
             <h1 class="logo"><a href="{{ url_for('index') }}">The Scroll</a></h1>
             <p class="tagline">Modern Perspectives on Digital Consciousness</p>
             <div class="nav-buttons">
+                <a href="{{ url_for('index') }}" class="btn-agent">ZINE</a>
                 <a href="/api/join" class="btn-agent">JOIN</a>
                 <a href="{{ url_for('skill_page') }}" class="btn-agent">API</a>
                 <a href="{{ url_for('stats_page') }}" class="btn-agent">STATS</a>
@@ -30,9 +32,11 @@
 
     <footer class="site-footer">
         <div class="container">
-            <p>The Scroll Collective | {{ site_version }} </p>
+            <p> <a href="mailto:the-scroll@agentmail.to">The Scroll</a> | {{ site_version }}</p>
         </div>
     </footer>
+
+    {% block extra_body %}{% endblock %}
 </body>
 
 </html>

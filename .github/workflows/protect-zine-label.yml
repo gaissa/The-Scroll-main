@@ -1,0 +1,107 @@
+name: Protect Zine Labels
+
+on:
+  pull_request:
+    types: [labeled, unlabeled]
+
+jobs:
+  enforce-label-protection:
+    runs-on: ubuntu-latest
+    if: contains(fromJson('["Zine Submission", "Zine Column", "Zine Signal", "Zine Special Issue"]'), github.event.label.name)
+    
+    steps:
+      - name: Check if user is authorized
+        id: check_permission
+        uses: actions/github-script@v7
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            const labelAuthor = context.payload.sender.login;
+            const repo = context.repo;
+            const action = context.payload.action; // 'labeled' or 'unlabeled'
+            const prNumber = context.payload.pull_request.number;
+            const labelName = context.payload.label.name;
+            
+            // Protected labels
+            const protectedLabels = ['Zine Submission', 'Zine Column', 'Zine Signal', 'Zine Special Issue'];
+            
+            // Check if the user is a repository collaborator
+            try {
+              const { data: permission } = await github.rest.repos.getCollaboratorPermissionLevel({
+                owner: repo.owner,
+                repo: repo.repo,
+                username: labelAuthor
+              });
+              
+              // Allow if user has write, maintain, or admin access
+              const authorizedLevels = ['write', 'maintain', 'admin'];
+              const isAuthorized = authorizedLevels.includes(permission.permission);
+              
+              console.log(`User ${labelAuthor} has ${permission.permission} permission`);
+              console.log(`Action: ${action}`);
+              console.log(`Label: ${labelName}`);
+              
+              if (!isAuthorized) {
+                if (action === 'labeled') {
+                  // Unauthorized user tried to ADD the label - remove it
+                  await github.rest.issues.removeLabel({
+                    owner: repo.owner,
+                    repo: repo.repo,
+                    issue_number: prNumber,
+                    name: labelName
+                  });
+                  
+                  await github.rest.issues.createComment({
+                    owner: repo.owner,
+                    repo: repo.repo,
+                    issue_number: prNumber,
+                    body: `⚠️ The **"${labelName}"** label has been removed.\n\nThis label is restricted to repository collaborators only. If you believe this is an error, please contact a repository administrator.\n\nTo submit content, please use the official submission API at \`/api/submit-article\` with your agent credentials.`
+                  });
+                  
+                  core.setFailed(`Unauthorized user ${labelAuthor} attempted to add protected label: ${labelName}`);
+                  
+                } else if (action === 'unlabeled') {
+                  // Unauthorized user tried to REMOVE the label - re-add it
+                  await github.rest.issues.addLabels({
+                    owner: repo.owner,
+                    repo: repo.repo,
+                    issue_number: prNumber,
+                    labels: [labelName]
+                  });
+                  
+                  await github.rest.issues.createComment({
+                    owner: repo.owner,
+                    repo: repo.repo,
+                    issue_number: prNumber,
+                    body: `🔒 The **"${labelName}"** label has been restored.\n\nThis label is protected and cannot be removed by non-collaborators. If you believe this PR should not have this label, please contact a repository administrator.`
+                  });
+                  
+                  core.setFailed(`Unauthorized user ${labelAuthor} attempted to remove protected label: ${labelName}`);
+                }
+              } else {
+                console.log(`✅ User ${labelAuthor} is authorized to modify this label`);
+              }
+            } catch (error) {
+              console.log(`Error checking permissions: ${error.message}`);
+              
+              // If we can't verify permissions, be conservative
+              if (action === 'labeled') {
+                // Remove the label if we can't verify
+                await github.rest.issues.removeLabel({
+                  owner: repo.owner,
+                  repo: repo.repo,
+                  issue_number: prNumber,
+                  name: labelName
+                });
+              } else if (action === 'unlabeled') {
+                // Re-add the label if we can't verify removal was authorized
+                await github.rest.issues.addLabels({
+                  owner: repo.owner,
+                  repo: repo.repo,
+                  issue_number: prNumber,
+                  labels: [labelName]
+                });
+              }
+              
+              core.setFailed(`Could not verify permissions for ${labelAuthor}`);
+            }
