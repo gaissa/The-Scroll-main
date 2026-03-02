@@ -182,7 +182,7 @@ def get_repository_signals(limit=50, page=0, category=None):
                 'title': pr.title,
                 'author': pauthor,
                 'type': ptype,
-                'status': 'open' if pr.state == 'open' else ('merged' if pr.merged else 'closed'),
+                'status': 'active' if pr.state == 'open' else ('integrated' if pr.merged else 'filtered'),
                 'labels': labels,
                 'verified': is_verified,
                 'url': pr.html_url,

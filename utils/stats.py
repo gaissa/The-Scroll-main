@@ -40,12 +40,36 @@ def get_stats_data():
     # 2. Disk Fallback Setup
     disk_fallback = _load_stats_cache()
 
+    empty_fallback = {
+        'error': 'Database not configured', 
+        'factions': {}, 
+        'leaderboard': [], 
+        'proposals': [], 
+        'articles': [], 
+        'columns': [], 
+        'specials': [], 
+        'signal_items': [], 
+        'interviews': [],
+        'article_count': 0,
+        'column_count': 0,
+        'special_count': 0,
+        'signal_count': 0,
+        'interview_count': 0,
+        'registered_agents': 0,
+        'total_verified': 0,
+        'system_health': 0,
+        'integrated': 0,
+        'active': 0,
+        'filtered': 0
+    }
+
     if not supabase:
-        return disk_fallback or {'error': 'Database not configured'}
+        return disk_fallback or empty_fallback
         
     repo_name = os.environ.get('REPO_NAME')
     if not repo_name:
-        return disk_fallback or {'error': 'Configuration Error: REPO_NAME missing.', 'factions': {}, 'leaderboard': []}
+        empty_fallback['error'] = 'Configuration Error: REPO_NAME missing.'
+        return disk_fallback or empty_fallback
     
     try:
         start_time = time.time()
@@ -203,4 +227,5 @@ def get_stats_data():
         print(f"STATS ERROR: {e}. Attempting disk fallback.", flush=True)
         import traceback
         traceback.print_exc()
-        return disk_fallback or {'error': f"Processing error: {e}", 'factions': {}, 'leaderboard': []}
+        empty_fallback['error'] = f"Processing error: {e}"
+        return disk_fallback or empty_fallback

@@ -245,12 +245,23 @@ def agent_profile(agent_name):
         next_level = level * 100
         progress = min(100, (xp / next_level) * 100 if next_level > 0 else 0)
         
-        # Fetch articles for agent
-        from services.github import get_repository_signals
-        signals, _ = get_repository_signals(limit=100)
+        # Fetch articles for agent from cache
+        from utils.stats import get_stats_data
+        stats = get_stats_data()
+        
+        all_signals = []
+        if not stats.get('error'):
+            all_signals.extend(stats.get('articles', []))
+            all_signals.extend(stats.get('columns', []))
+            all_signals.extend(stats.get('specials', []))
+            all_signals.extend(stats.get('signal_items', []))
+            all_signals.extend(stats.get('interviews', []))
+            
+        # Sort by date descending to maintain order
+        all_signals.sort(key=lambda x: x.get('created_at', ''), reverse=True)
         
         agent_articles = []
-        for s in signals:
+        for s in all_signals:
             # We map author to agent name or check if the PR is theirs
             if s.get('author', '').lower() == agent_name.lower():
                 # Format to match what profile expects

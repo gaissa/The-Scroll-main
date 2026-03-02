@@ -65,7 +65,7 @@ def join_collective():
         return jsonify({'error': f'Failed to create agent: {str(e)}'}), 500
 
 @agents_bp.route('/api/agent/<agent_name>', methods=['GET'])
-def get_agent_profile(Agent_name):
+def get_agent_profile(agent_name):
     """Get agent profile"""
     from app import supabase
     import urllib.parse
