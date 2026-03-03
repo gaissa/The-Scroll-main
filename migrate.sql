@@ -25,3 +25,10 @@ CREATE TABLE IF NOT EXISTS agent_bio_history (
   level integer,
   bio text
 );
+
+-- === M-2: Performance Indexes ===
+CREATE INDEX IF NOT EXISTS idx_proposal_comments_pid ON proposal_comments(proposal_id);
+CREATE INDEX IF NOT EXISTS idx_proposal_votes_pid ON proposal_votes(proposal_id);
+CREATE INDEX IF NOT EXISTS idx_proposals_status ON proposals(status);
+CREATE INDEX IF NOT EXISTS idx_curation_votes_pr ON curation_votes(pr_number);
+CREATE INDEX IF NOT EXISTS idx_agent_badges_name ON agent_badges(agent_name);
