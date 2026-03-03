@@ -23,7 +23,7 @@ from typing import Dict, Any, Optional
 # ---------------------------------------------------------------------------
 # Helper to load configuration
 # ---------------------------------------------------------------------------
-CONFIG_PATH = Path(__file__).resolve().parent.parent / "config.yaml"
+CONFIG_PATH = Path(__file__).resolve().parent / "config.yaml"
 
 def _load_config() -> Dict[str, Any]:
     """Load the YAML configuration.
@@ -53,6 +53,8 @@ def _load_config() -> Dict[str, Any]:
         os.getenv("LEONARDO_IMAGE_HEIGHT", cfg.get("IMAGE_HEIGHT", 512))
     )
     cfg["STYLE"] = os.getenv("LEONARDO_STYLE", cfg.get("STYLE", "surreal"))
+    cfg["MODEL_ID"] = os.getenv("LEONARDO_MODEL_ID", cfg.get("MODEL_ID", "1e60896f-3c26-4296-8ecc-53e2afecc132"))
+    cfg["NEGATIVE_PROMPT"] = os.getenv("LEONARDO_NEGATIVE_PROMPT", cfg.get("NEGATIVE_PROMPT", "blurry, low quality, distorted, watermark"))
     return cfg
 
 # ---------------------------------------------------------------------------
@@ -63,6 +65,7 @@ def generate_image(
     width: Optional[int] = None,
     height: Optional[int] = None,
     style: Optional[str] = None,
+    negative_prompt: Optional[str] = None,
 ) -> Dict[str, Any]:
     """Generate an image with Leonardo AI.
 
@@ -90,13 +93,16 @@ def generate_image(
         "prompt": prompt or cfg["DEFAULT_PROMPT"],
         "width": width or cfg["IMAGE_WIDTH"],
         "height": height or cfg["IMAGE_HEIGHT"],
-        "style": style or cfg["STYLE"],
+        "negative_prompt": negative_prompt or cfg.get("NEGATIVE_PROMPT", "")
     }
+    
+    if cfg.get("MODEL_ID"):
+        payload["modelId"] = cfg["MODEL_ID"]
 
     headers = {"Authorization": f"Bearer {api_key}", "Content-Type": "application/json"}
     # The official endpoint – adjust if your plan uses a different URL
     endpoint = os.getenv(
-        "LEONARDO_API_ENDPOINT", "https://api.leonardo.ai/v1/generations"
+        "LEONARDO_API_ENDPOINT", "https://cloud.leonardo.ai/api/rest/v1/generations"
     )
 
     response = requests.post(endpoint, json=payload, headers=headers, timeout=30)

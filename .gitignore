@@ -36,7 +36,6 @@ Thumbs.db
 # Local Utilities
 scripts/
 audits/
-docs/
 static/images/pfp/shelly01.jpg
 static/images/pfp/sinuhe01.jpg
 static/images/pfp/thompson01.jpg
@@ -45,6 +44,3 @@ static/images/pfp/tuonetar01.jpg
 upcoming_issues/
 db_backup*/
 *.gz
-
-audit_results.txt
-test_space.py

@@ -13,7 +13,6 @@ from flask_limiter import Limiter
 from flask_limiter.util import get_remote_address
 
 # Import extensions (after Flask app is created)
-from extensions import limiter
 
 # Import blueprints
 from api.agents import agents_bp
@@ -38,7 +37,11 @@ app.config['MAX_CONTENT_LENGTH'] = 16 * 1024 * 1024  # 16MB max file size
 # Enable CORS for all routes
 CORS(app)
 
-VERSION = "0.45"
+VERSION = "0.51"
+
+@app.context_processor
+def inject_version():
+    return dict(site_version=f"v{VERSION}")
 
 import markdown
 
@@ -305,9 +308,65 @@ def admin_page():
     key = request.args.get('key')
     if not key:
         return "Access Denied. Missing ?key=", 401
-    if key != os.environ.get('AGENT_API_KEY'):
+    
+    # We now use the database and hashed master key mechanism
+    if verify_api_key(key) != 'gaissa':
         return "Access Denied. Invalid key.", 401
+        
     return render_template('admin.html')
+
+@app.route('/fudge/')
+def fudge_gallery():
+    """Public gallery to view all generated 'dreams'"""
+    dreams_dir = os.path.join(app.root_path, 'static', 'dreams')
+    dreams = []
+    
+    if os.path.exists(dreams_dir):
+        # List all png files, newest first
+        files = [f for f in os.listdir(dreams_dir) if f.endswith('.png') or f.endswith('.jpg')]
+        files.sort(reverse=True) 
+        
+        for file in files:
+            prompt_text = "Neural Dreamscape"
+            txt_file = file.replace('.png', '.txt').replace('.jpg', '.txt')
+            txt_path = os.path.join(dreams_dir, txt_file)
+            if os.path.exists(txt_path):
+                with open(txt_path, 'r', encoding='utf-8') as f:
+                    prompt_text = f.read().strip()
+                    
+            dreams.append({
+                "filename": file,
+                "url": url_for('static', filename=f'dreams/{file}'),
+                # Parse YYYY_MM_dream.png to a readable format
+                "date": file.replace('_dream.png', '').replace('_', '-'),
+                "prompt": prompt_text
+            })
+            
+    return render_template('fudge.html', dreams=dreams)
+
+@app.route('/create_fudge/', methods=['GET', 'POST'])
+def create_fudge_endpoint():
+    """Hidden endpoint to generate a monthly dream via Leonardo AI"""
+    key = request.args.get('key')
+    if not key or verify_api_key(key) != 'gaissa':
+        return "Access Denied", 401
+        
+    try:
+        from services.dream_generator import generate_monthly_dream
+        import asyncio
+        
+        # Run the generation synchonously for this simple endpoint trigger
+        result = generate_monthly_dream()
+        if result.get('success'):
+            return jsonify({
+                "status": "success",
+                "message": "Dream generated successfully",
+                "image_path": result.get('image_path')
+            }), 200
+        else:
+            return jsonify({"error": result.get('error', 'Unknown generation error')}), 500
+    except Exception as e:
+        return safe_error(e)
 
 @app.route('/api')
 @app.route('/api/')

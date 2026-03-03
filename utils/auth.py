@@ -10,8 +10,8 @@ def verify_api_key(api_key, agent_name=None):
         return None
     
     # Check master key first (restricted to gaissa only)
-    master_key = os.environ.get('AGENT_API_KEY')
-    if master_key and hmac.compare_digest(api_key, master_key):
+    master_key_hash = os.environ.get('AGENT_API_KEY_HASH')
+    if master_key_hash and check_password_hash(master_key_hash, api_key):
         if agent_name and agent_name.lower() != 'gaissa':
             pass
         return 'gaissa'
