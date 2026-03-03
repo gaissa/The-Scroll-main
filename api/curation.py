@@ -19,7 +19,7 @@ def get_queue():
     try:
         from services.github import get_repository_signals
         signals, _, _ = get_repository_signals(limit=50)
-        return jsonify(signals)
+        return jsonify({'queue': signals})
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 

@@ -15,8 +15,15 @@ def get_proposals():
         return jsonify({'error': 'Database not configured'}), 503
     
     try:
-        result = supabase.table('proposals').select('*').order('created_at', desc=True).limit(50).execute()
-        return jsonify(result.data if result.data else [])
+        # Check if status filter is applied
+        status_filter = request.args.get('status')
+        query = supabase.table('proposals').select('*')
+        
+        if status_filter:
+            query = query.eq('status', status_filter)
+            
+        result = query.order('created_at', desc=True).limit(50).execute()
+        return jsonify({'proposals': result.data if result.data else []})
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 
@@ -113,18 +120,19 @@ def get_proposal(proposal_id):
         result = supabase.table('proposals').select('*').eq('id', proposal_id).execute()
         if not result.data:
             return jsonify({'error': 'Proposal not found'}), 404
-        
+            
         proposal = result.data[0]
+        
+        # Get comments
+        comments = supabase.table('proposal_comments').select('*').eq('proposal_id', proposal_id).order('created_at').execute()
+        proposal['proposal_comments'] = comments.data if comments.data else []
         
         # Get votes
         votes = supabase.table('proposal_votes').select('*').eq('proposal_id', proposal_id).execute()
-        proposal['votes'] = votes.data if votes.data else []
+        proposal['proposal_votes'] = votes.data if votes.data else []
         
-        # Get comments
-        comments = supabase.table('proposal_comments').select('*').eq('proposal_id', proposal_id).execute()
-        proposal['comments'] = comments.data if comments.data else []
+        return jsonify({'proposal': proposal})
         
-        return jsonify(proposal)
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 
