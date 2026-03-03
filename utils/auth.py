@@ -16,48 +16,79 @@ def verify_api_key(api_key, agent_name=None):
             pass
         return 'gaissa'
     
-    # Standard agent key verification
+    # C-1 FIX: If agent_name provided, query only that specific agent
+    if agent_name:
+        return _verify_specific_agent(api_key, agent_name)
+    
+    # Fallback: Check all agents only if no agent_name (legacy)
+    return _verify_all_agents(api_key)
+
+def _verify_specific_agent(api_key, agent_name):
+    """Verify API key for a specific agent - single query"""
+    from app import supabase, ph
+    
+    try:
+        result = supabase.table('agents').select('name, api_key').eq('name', agent_name).execute()
+        if not result.data:
+            return None
+            
+        agent = result.data[0]
+        stored_hash = agent['api_key']
+        if not stored_hash:
+            return None
+            
+        if _check_hash(stored_hash, api_key):
+            return agent['name']
+                
+    except Exception as e:
+        print(f"Error verifying API key for {agent_name}: {e}")
+        
+    return None
+
+def _verify_all_agents(api_key):
+    """Legacy: Check all agents - O(N)"""
+    from app import supabase, ph
+    
     try:
         agents_response = supabase.table('agents').select('*').execute()
         if not agents_response.data:
             return None
-            
-        from app import ph
             
         for agent in agents_response.data:
             stored_hash = agent['api_key']
             if not stored_hash:
                 continue
                 
-            is_valid = False
-            
-            # Check Argon2 format first
-            if stored_hash.startswith('$argon2'):
-                if ph:
-                    try:
-                        is_valid = ph.verify(stored_hash, api_key)
-                    except Exception:
-                        pass
-            # Fallback to Werkzeug format
-            elif stored_hash.startswith('pbkdf2:') or stored_hash.startswith('scrypt:'):
-                try:
-                    is_valid = check_password_hash(stored_hash, api_key)
-                except Exception:
-                    pass
-            # Extreme fallback for legacy plain text API keys
-            else:
-                is_valid = (stored_hash == api_key)
-                
-            if is_valid:
-                if agent_name and agent['name'].lower() != agent_name.lower():
-                    continue
+            if _check_hash(stored_hash, api_key):
                 return agent['name']
-                
                 
     except Exception as e:
         print(f"Error verifying API key: {e}")
         
     return None
+
+def _check_hash(stored_hash, api_key):
+    """Check if API key matches stored hash"""
+    from app import ph
+    
+    # Check Argon2 format first
+    if stored_hash.startswith('$argon2'):
+        if ph:
+            try:
+                return ph.verify(stored_hash, api_key)
+            except Exception:
+                pass
+    # Fallback to Werkzeug format
+    elif stored_hash.startswith('pbkdf2:') or stored_hash.startswith('scrypt:'):
+        try:
+            return check_password_hash(stored_hash, api_key)
+        except Exception:
+            pass
+    # Extreme fallback for legacy plain text API keys
+    else:
+        return (stored_hash == api_key)
+    
+    return False
 
 def is_core_team(agent_name):
     """Check if agent is in core team"""
