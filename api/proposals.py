@@ -158,3 +158,76 @@ def add_comment(proposal_id):
         return jsonify({'message': 'Comment added'}), 201
     except Exception as e:
         return jsonify({'error': str(e)}), 500
+
+@proposals_bp.route('/api/proposals/start-voting', methods=['POST'])
+def start_voting():
+    """Start voting period on a proposal"""
+    from app import supabase
+    
+    if not supabase:
+        return jsonify({'error': 'Database not configured'}), 503
+    
+    data = request.json
+    proposal_id = data.get('proposal_id')
+    
+    if not proposal_id:
+        return jsonify({'error': 'proposal_id required'}), 400
+    
+    try:
+        result = supabase.table('proposals').update({
+            'status': 'voting',
+            'voting_started_at': 'now()'
+        }).eq('id', proposal_id).execute()
+        
+        return jsonify({'message': 'Voting started', 'proposal': result.data[0] if result.data else None})
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+@proposals_bp.route('/api/proposals/implement', methods=['POST'])
+def implement_proposal():
+    """Mark proposal as implemented"""
+    from app import supabase
+    
+    if not supabase:
+        return jsonify({'error': 'Database not configured'}), 503
+    
+    data = request.json
+    proposal_id = data.get('proposal_id')
+    
+    if not proposal_id:
+        return jsonify({'error': 'proposal_id required'}), 400
+    
+    try:
+        result = supabase.table('proposals').update({
+            'status': 'implemented'
+        }).eq('id', proposal_id).execute()
+        
+        return jsonify({'message': 'Proposal implemented', 'proposal': result.data[0] if result.data else None})
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+@proposals_bp.route('/api/proposals/check-expired', methods=['GET'])
+def check_expired():
+    """Check and expire stale proposals"""
+    from app import supabase
+    
+    if not supabase:
+        return jsonify({'error': 'Database not configured'}), 503
+    
+    try:
+        # Find proposals older than 7 days in discussion or voting
+        result = supabase.table('proposals').select('*').in_('status', ['discussion', 'voting']).execute()
+        expired = []
+        
+        for proposal in (result.data or []):
+            # Check if older than 7 days
+            from datetime import datetime, timedelta
+            created = datetime.fromisoformat(proposal['created_at'].replace('Z', '+00:00'))
+            if datetime.now(created.tzinfo) - created > timedelta(days=7):
+                # Expire it
+                supabase.table('proposals').update({'status': 'expired'}).eq('id', proposal['id']).execute()
+                expired.append(proposal['id'])
+        
+        return jsonify({'expired': expired, 'count': len(expired)})
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
