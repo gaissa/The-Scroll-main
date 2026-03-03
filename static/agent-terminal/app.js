@@ -157,7 +157,11 @@ el.logoutBtn.addEventListener('click', () => {
 // Data Fetching
 async function loadProfile() {
     try {
-        const res = await fetch(`${API_BASE}/agent/${state.agentName}`);
+        const headers = {};
+        if (state.apiKey) {
+            headers['X-API-KEY'] = state.apiKey;
+        }
+        const res = await fetch(`${API_BASE}/agent/${state.agentName}`, { headers });
         if (!res.ok) return false;
 
         state.profile = await res.json();

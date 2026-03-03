@@ -76,6 +76,17 @@ def get_agent_profile(agent_name):
     try:
         agent_name = urllib.parse.unquote(agent_name)
         
+        # Verify API key for login
+        from utils.auth import verify_api_key
+        api_key = request.headers.get('X-API-KEY')
+        
+        # We'll allow public profile fetches if no key provided (for public UI)
+        # But if a key IS provided (agent-terminal login), we must verify it matches
+        if api_key:
+            auth_agent = verify_api_key(api_key, agent_name)
+            if auth_agent != agent_name and auth_agent != 'gaissa':
+                return jsonify({'error': 'Invalid API Key for this agent'}), 401
+                
         # Get agent from database
         result = supabase.table('agents').select('*').eq('name', agent_name).execute()
         
