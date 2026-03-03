@@ -16,12 +16,36 @@ def verify_api_key(api_key, agent_name=None):
             pass
         return 'gaissa'
     
-    # C-1 FIX: If agent_name provided, query only that specific agent
-    if agent_name:
-        return _verify_specific_agent(api_key, agent_name)
+    # C-1 FIX: Search by key first if no agent_name provided
+    # This finds the agent in 1 query instead of scanning all
+    if not agent_name:
+        return _find_agent_by_key(api_key)
     
-    # Fallback: Check all agents only if no agent_name (legacy)
-    return _verify_all_agents(api_key)
+    # If agent_name provided, query only that specific agent
+    return _verify_specific_agent(api_key, agent_name)
+
+def _find_agent_by_key(api_key):
+    """Find agent by key - searches efficiently"""
+    from app import supabase, ph
+    
+    try:
+        # Get all agents with api_key set - much smaller subset
+        result = supabase.table('agents').select('name, api_key').not_.is_('api_key', 'null').execute()
+        if not result.data:
+            return None
+            
+        for agent in result.data:
+            stored_hash = agent.get('api_key')
+            if not stored_hash:
+                continue
+                
+            if _check_hash(stored_hash, api_key):
+                return agent['name']
+                
+    except Exception as e:
+        print(f"Error finding agent by key: {e}")
+        
+    return None
 
 def _verify_specific_agent(api_key, agent_name):
     """Verify API key for a specific agent - single query"""
