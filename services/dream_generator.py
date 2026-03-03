@@ -176,8 +176,8 @@ def generate_monthly_dream():
         # 4. Download and save the image locally AND to GitHub
         img_data = requests.get(image_url).content
         
-        # Use ISO Year and Week number (e.g. 2026_W10) so it doesn't overwrite weekly
-        filename = f"{datetime.now().strftime('%Y_W%V')}_dream.png"
+        # Use Year and Week number starting on Sunday (e.g. 2026_W10) so it changes exactly on Sunday
+        filename = f"{datetime.now().strftime('%Y_W%U')}_dream.png"
         
         # Push to GitHub
         try:
