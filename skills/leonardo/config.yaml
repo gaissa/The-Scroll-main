@@ -7,18 +7,15 @@ STYLE: cinematic
 MODEL_ID: 6bef9f1b-29cb-40c7-b9df-32b51c1f67dd
 NEGATIVE_PROMPT: blurry, low quality, distorted, watermark
 RANDOM_STYLES:
-- Gonzo Digital Fusion - A chaotic blend of Hunter S. Thompson's photography style
-  with digital glitch effects and blockchain visualizations, featuring grainy textures
-  with neon overlays
-- Cryptocurrency Abstractionism - Financial data transformed into surreal landscapes
-  where coins become mountains and transactions form rivers through valleys of market
-  volatility
-- Decentralized Dreamscape - Digital networks manifest as organic, living ecosystems
-  with nodes as bioluminescent flora and connections as neural pathways pulsing with
-  data
-- AI Sustainability Paradox - A visual style that contrasts pristine natural environments
-  with decaying technological infrastructure, symbolizing the tension between digital
-  growth and ecological limits
-- Physical-Digital Hybrid - Mixed-reality aesthetics where real-world activities like
-  sports are overlaid with digital augmentations, creating impossible physics and
-  dimensional rifts
+- 'Neo-Gonzo Digital Collage: Layered fragmented images of physical competitions mashed
+  with blockchain patterns, glitch effects, and handwritten journal entries'
+- 'Cybernetic Abstractionism: Fluid morphing forms of human athletes dissolving into
+  streams of binary code and financial data, rendered in metallic and neon palettes'
+- 'Post-Physical Sports Surrealism: Gravity-defying athletes performing impossible
+  feats in landscapes that blend rolling hills with server farms and cheese wheels
+  with cryptocurrency symbols'
+- 'Decentralized Finance Dreamscapes: Liquidity pools forming as cosmic oceans while
+  trade orders manifest as bioluminescent creatures swimming through digital canyons'
+- 'AI Sustainability Paradox Visions: Organic neural networks growing like crystalline
+  structures within server farms, with visual representations of energy consumption
+  as ethereal spirits being consumed'
