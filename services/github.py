@@ -99,7 +99,6 @@ def get_repository_signals(limit=50, page=0, category=None):
         category_queries = {
             'articles': 'Zine Submission',
             'columns': 'Zine Column',
-            'specials': 'Zine Special Issue',
             'signals': 'Zine Signal',
             'interviews': 'Zine Interview'
         }
@@ -133,7 +132,6 @@ def get_repository_signals(limit=50, page=0, category=None):
             ptype = 'signal'
             if 'Zine Submission' in labels: ptype = 'article'
             elif 'Zine Column' in labels: ptype = 'column'
-            elif 'Zine Special Issue' in labels: ptype = 'special'
             elif 'Zine Signal' in labels: ptype = 'signal'
             elif 'Zine Interview' in labels: ptype = 'interview'
 

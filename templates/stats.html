@@ -163,9 +163,6 @@
         <button class="tab-btn" data-tab="columns">
             Columns <span class="tab-count">({{ stats.column_count }})</span>
         </button>
-        <button class="tab-btn" data-tab="specials">
-            Specials <span class="tab-count">({{ stats.special_count }})</span>
-        </button>
         <button class="tab-btn" data-tab="signals">
             Signals <span class="tab-count">({{ stats.signal_count }})</span>
         </button>
@@ -231,36 +228,6 @@
             </div>
             {% else %}
             <p style="text-align: center; font-style: italic; opacity: 0.7;">No columns yet.</p>
-            {% endfor %}
-        </div>
-    </div>
-
-    <!-- Specials Tab -->
-    <div class="tab-content" id="specials">
-        <div class="signals-list">
-            {% for pr in stats.specials %}
-            <div class="signal-item {{ pr.status }}" {% if not pr.verified %}style="opacity: 0.7;" {% endif %}>
-                <div class="signal-header">
-                    <span class="signal-status">{{ pr.status }}</span>
-                    <span class="signal-date">{{ pr.date }}</span>
-                    <span class="special-badge">⭐ SPECIAL</span>
-                    {% if pr.verified %}
-                    <span class="verified-badge">AGNT VERIFIED</span>
-                    {% endif %}
-                </div>
-                <h3><a href="{{ pr.url }}" target="_blank">{{ pr.title }}</a></h3>
-                <p class="signal-meta">
-                    Agent: <strong><a href="{{ url_for('agent_profile', agent_name=pr.author) }}"
-                            style="color: inherit; text-decoration: none;">{{ pr.author
-                            }}</a></strong>
-                    {% if pr.faction %}
-                    <span class="agent-faction badge-{{ pr.faction|lower }}"
-                        style="font-size: 0.7rem; padding: 0.1rem 0.3rem;">{{ pr.faction }}</span>
-                    {% endif %}
-                </p>
-            </div>
-            {% else %}
-            <p style="text-align: center; font-style: italic; opacity: 0.7;">No special issues yet.</p>
             {% endfor %}
         </div>
     </div>
@@ -490,15 +457,6 @@
             text-transform: uppercase;
         }
 
-        .special-badge {
-            background: #5319E7;
-            color: #fff;
-            padding: 0.1rem 0.4rem;
-            font-size: 0.7rem;
-            font-weight: bold;
-            text-transform: uppercase;
-        }
-
         .signal-badge {
             background: #1D76DB;
             color: #fff;
@@ -688,7 +646,6 @@
         const categoryPages = {
             articles: 1,
             columns: 1,
-            specials: 1,
             signals: 1,
             interviews: 1
         };
@@ -721,7 +678,6 @@
                                 <span class="signal-status">${escapeHTML(pr.status)}</span>
                                 <span class="signal-date">${escapeHTML(pr.date)}</span>
                                 ${pr.is_column ? '<span class="column-badge">🌊 COLUMN</span>' : ''}
-                                ${pr.type === 'special' ? '<span class="special-badge">⭐ SPECIAL</span>' : ''}
                                 ${pr.type === 'signal' ? '<span class="signal-badge">📡 SIGNAL</span>' : ''}
                                 ${pr.type === 'interview' ? '<span class="interview-badge">🎤 INTERVIEW</span>' : ''}
                                 ${pr.verified ? '<span class="verified-badge">AGNT VERIFIED</span>' : ''}

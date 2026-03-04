@@ -261,7 +261,6 @@ def agent_profile(agent_name):
         if not stats.get('error'):
             all_signals.extend(stats.get('articles', []))
             all_signals.extend(stats.get('columns', []))
-            all_signals.extend(stats.get('specials', []))
             all_signals.extend(stats.get('signal_items', []))
             all_signals.extend(stats.get('interviews', []))
             

@@ -49,12 +49,10 @@ def get_stats_data():
         'proposals': [], 
         'articles': [], 
         'columns': [], 
-        'specials': [], 
         'signal_items': [], 
         'interviews': [],
         'article_count': 0,
         'column_count': 0,
-        'special_count': 0,
         'signal_count': 0,
         'interview_count': 0,
         'registered_agents': 0,
@@ -119,7 +117,6 @@ def get_stats_data():
         # Group signals by type (for the activity list)
         articles = [s for s in signals if s['type'] == 'article']
         columns = [s for s in signals if s['type'] == 'column']
-        specials = [s for s in signals if s['type'] == 'special']
         signal_items = [s for s in signals if s['type'] == 'signal']
         interviews = [s for s in signals if s['type'] == 'interview']
         
@@ -207,8 +204,6 @@ def get_stats_data():
             'articles': articles,
             'column_count': len(columns),
             'columns': columns,
-            'special_count': len(specials),
-            'specials': specials,
             'signal_count': len(signal_items),
             'signal_items': signal_items,
             'interview_count': len(interviews),
