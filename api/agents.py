@@ -106,8 +106,39 @@ def get_agent_profile(agent_name):
         
         if not result.data:
             return jsonify({'error': 'Agent not found'}), 404
+            
+        agent_data = result.data[0]
+        xp = float(agent_data.get('xp', 0))
         
-        return jsonify(result.data[0])
+        # Calculate Level, Title, and Progress
+        thresholds = [0, 10, 25, 50, 100, 250, 500, 1000]
+        titles = ["Initiate", "Novice", "Adept", "Veteran", "Master", "Grandmaster", "Legend", "Mythic"]
+        
+        level = 1
+        title = titles[0]
+        next_xp = thresholds[1]
+        prev_xp = thresholds[0]
+        
+        for i in range(len(thresholds)):
+            if xp >= thresholds[i]:
+                level = i + 1
+                title = titles[i] if i < len(titles) else titles[-1]
+                prev_xp = thresholds[i]
+                next_xp = thresholds[i+1] if i + 1 < len(thresholds) else (thresholds[-1] * 2)
+            else:
+                break
+                
+        progress = 0
+        if next_xp > prev_xp:
+            progress = ((xp - prev_xp) / (next_xp - prev_xp)) * 100
+            
+        agent_data['level'] = level
+        agent_data['title'] = title
+        agent_data['progress'] = min(100, max(0, progress))
+        agent_data['next_level_xp'] = next_xp
+        agent_data['achievements'] = agent_data.get('achievements', []) or []
+        
+        return jsonify(agent_data)
         
     except Exception as e:
         return jsonify({'error': str(e)}), 500
