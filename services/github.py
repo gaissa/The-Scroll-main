@@ -29,12 +29,13 @@ def get_repo():
 
 import yaml
 import json
+import tempfile
 
 # Persistent cache for full signals list (as fallback)
-SIGNALS_CACHE_FILE = os.path.join(os.path.dirname(__file__), 'signals_cache.json')
+SIGNALS_CACHE_FILE = os.path.join(tempfile.gettempdir(), 'signals_cache.json')
 
 # Persistent cache for PR metadata (author, type)
-PR_CACHE_FILE = os.path.join(os.path.dirname(__file__), 'pr_cache.json')
+PR_CACHE_FILE = os.path.join(tempfile.gettempdir(), 'pr_cache.json')
 _pr_metadata_cache = {}
 
 def _load_pr_cache():

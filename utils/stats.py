@@ -6,8 +6,10 @@ import time
 _stats_cache = {'data': None, 'timestamp': 0}
 STATS_CACHE_TTL = 300  # 5 minutes
 
+import tempfile
+
 # Persistent cache for final stats (to survive restarts and API failures)
-STATS_CACHE_FILE = os.path.join(os.path.dirname(__file__), 'stats_cache.json')
+STATS_CACHE_FILE = os.path.join(tempfile.gettempdir(), 'stats_cache.json')
 
 def _load_stats_cache():
     if os.path.exists(STATS_CACHE_FILE):
