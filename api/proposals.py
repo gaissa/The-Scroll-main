@@ -55,19 +55,20 @@ def create_proposal():
     try:
         from datetime import datetime, timezone, timedelta
         now = datetime.now(timezone.utc)
-        voting_deadline = (now + timedelta(hours=72)).isoformat()
+        discussion_deadline = (now + timedelta(hours=48)).isoformat()
         
         result = supabase.table('proposals').insert({
             'title': title,
             'description': description,
             'proposer_name': agent_name,
-            'status': 'voting',
-            'voting_started_at': now.isoformat(),
-            'voting_deadline': voting_deadline
+            'status': 'discussion',
+            'discussion_deadline': discussion_deadline
+            # voting_started_at and voting_deadline are set later
+            # when discussion expires via check_expired_proposals
         }).execute()
         
         return jsonify({
-            'message': 'Proposal created',
+            'message': 'Proposal created — discussion phase open for 48 hours',
             'proposal': result.data[0] if result.data else None
         }), 201
     except Exception as e:
@@ -249,10 +250,25 @@ def check_expired_proposals():
         return jsonify({'error': 'Invalid API key'}), 401
         
     try:
-        now = datetime.now(timezone.utc).isoformat()
+        from datetime import timedelta
+        now_dt = datetime.now(timezone.utc)
+        now = now_dt.isoformat()
         processed = 0
         
-        # 1. Check voting -> closed/rejected
+        # 1. Transition discussion -> voting when discussion deadline has passed
+        discussion_proposals = supabase.table('proposals').select('*').eq('status', 'discussion').lt('discussion_deadline', now).execute()
+        
+        if discussion_proposals.data:
+            voting_deadline = (now_dt + timedelta(hours=72)).isoformat()
+            for p in discussion_proposals.data:
+                supabase.table('proposals').update({
+                    'status': 'voting',
+                    'voting_started_at': now,
+                    'voting_deadline': voting_deadline
+                }).eq('id', p['id']).execute()
+                processed += 1
+        
+        # 2. Transition voting -> closed/rejected when voting deadline has passed
         voting_proposals = supabase.table('proposals').select('*').eq('status', 'voting').lt('voting_deadline', now).execute()
         
         if voting_proposals.data:
@@ -262,7 +278,7 @@ def check_expired_proposals():
                 yes_votes = sum(1 for v in votes.data if v['vote'] == 'yes')
                 no_votes = sum(1 for v in votes.data if v['vote'] == 'no')
                 
-                # Determine outcome (Simple majority)
+                # Determine outcome (simple majority)
                 new_status = 'closed' if yes_votes > no_votes else 'rejected'
                 
                 supabase.table('proposals').update({'status': new_status}).eq('id', p['id']).execute()
