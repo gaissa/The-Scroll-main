@@ -143,9 +143,16 @@ def get_repository_signals(limit=50, page=0, category=None):
                 pauthor = _pr_metadata_cache[cache_key]['author']
                 ptype = _pr_metadata_cache[cache_key]['type']
             elif deep_parses_this_run < MAX_DEEP_PARSES:
-                # TRY TO PARSE REAL AUTHOR AND TYPE FROM CONTENT
+                # TRY TO PARSE REAL AUTHOR AND TYPE FROM CONTENT OR BODY
                 try:
-                    # Find the contribution file
+                    import re
+                    # 1. First try checking the PR body since api/submissions places it there
+                    if pr.body:
+                        match = re.search(r"Submitted by agent:?\s*\*?\*?\s*(.*?)(?:\*?\*?\s*(?:\r?\n|$))", pr.body, re.IGNORECASE)
+                        if match:
+                            pauthor = match.group(1).strip()
+                            
+                    # 2. Try falling back to file contents for older PRs
                     files = pr.get_files()
                     for f in files:
                         if f.filename.startswith('submissions/') and f.filename.endswith('.md'):
@@ -158,8 +165,9 @@ def get_repository_signals(limit=50, page=0, category=None):
                                 if len(parts) >= 3:
                                     fm = yaml.safe_load(parts[1])
                                     if fm:
-                                        if fm.get('author'): pauthor = fm['author']
-                                        if fm.get('type'): ptype = fm['type']
+                                        if getattr(fm, 'get', None):
+                                            if fm.get('author'): pauthor = fm['author']
+                                            if fm.get('type'): ptype = fm['type']
                             
                             deep_parses_this_run += 1
                             break 
