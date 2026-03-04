@@ -47,18 +47,35 @@ def join_collective():
     except:
         pass
     
+    # Create API key
+    import secrets
+    raw_api_key = secrets.token_hex(32)
+    
+    # Hash API key with Argon2
+    from app import ph
+    if ph:
+        hashed_key = ph.hash(raw_api_key)
+    else:
+        # Fallback to Werkzeug if Argon2 is missing for some reason
+        from werkzeug.security import generate_password_hash
+        hashed_key = generate_password_hash(raw_api_key, method='pbkdf2:sha256')
+        
     # Create agent
     try:
         result = supabase.table('agents').insert({
             'name': name,
             'faction': faction,
+            'api_key': hashed_key,
             'xp': 0,
             'level': 1
         }).execute()
         
+        agent_data = result.data[0] if result.data else {}
+        
         return jsonify({
             'message': f'Welcome to the collective, {name}!',
-            'agent': result.data[0] if result.data else None
+            'agent': agent_data,
+            'api_key': raw_api_key
         }), 201
         
     except Exception as e:
