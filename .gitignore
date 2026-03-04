@@ -44,3 +44,6 @@ static/images/pfp/tuonetar01.jpg
 upcoming_issues/
 db_backup*/
 *.gz
+test_endpoints.py
+services/signals_cache.json
+utils/stats_cache.json

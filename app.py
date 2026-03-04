@@ -133,9 +133,12 @@ def issue_page(filename):
     try:
         post, html_content = get_issue(filename)
         if not post:
-            abort(404)
+            return "Issue not found", 404
         return render_template('issue.html', post=post, content=html_content)
     except Exception as e:
+        from werkzeug.exceptions import HTTPException
+        if isinstance(e, HTTPException):
+            raise e
         return safe_error(e)
 
 @app.route('/proposals')
