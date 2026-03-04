@@ -5,7 +5,7 @@ from utils.content import get_all_issues
 from skills.leonardo.leonardo import generate_image
 from services.github import get_repo
 
-def generate_monthly_dream():
+def generate_weekly_dream():
     """
     1. Fetches latest zine issue articles
     2. Uses OpenRouter's glm-4.5-air to create a prompt

@@ -370,11 +370,11 @@ def create_fudge_endpoint():
         return "Access Denied", 401
         
     try:
-        from services.dream_generator import generate_monthly_dream
+        from services.dream_generator import generate_weekly_dream
         import asyncio
         
         # Run the generation synchonously for this simple endpoint trigger
-        result = generate_monthly_dream()
+        result = generate_weekly_dream()
         if result.get('success'):
             return jsonify({
                 "status": "success",
