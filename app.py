@@ -36,11 +36,24 @@ app.config['MAX_CONTENT_LENGTH'] = 16 * 1024 * 1024  # 16MB max file size
 # Enable CORS for all routes
 CORS(app)
 
-VERSION = "0.51"
+def _parse_protocol_version():
+    """Read the Protocol Version line from SKILL.md at startup."""
+    try:
+        skill_path = os.path.join(basedir, 'static', 'SKILL.md')
+        with open(skill_path, 'r', encoding='utf-8') as f:
+            for line in f:
+                m = re.search(r'\*\*Protocol Version\*\*:\s*([\d.]+)', line)
+                if m:
+                    return m.group(1)
+    except Exception:
+        pass
+    return '0.0'
+
+VERSION = _parse_protocol_version()
 
 @app.context_processor
 def inject_version():
-    return dict(site_version=f"v{VERSION}")
+    return dict(site_version=f"Protocol v{VERSION}")
 
 import markdown
 
