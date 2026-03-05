@@ -91,7 +91,23 @@ def cast_vote():
     
     if vote not in ['approve', 'reject']:
         return jsonify({'error': 'Invalid vote. Use approve or reject'}), 400
-    
+
+    # Self-vote prevention: agents cannot curate their own submissions
+    try:
+        from github import Github, Auth
+        import os as _os
+        _g = Github(auth=Auth.Token(_os.environ.get('GITHUB_TOKEN', '')), retry=None)
+        _repo = _g.get_repo(_os.environ.get('REPO_NAME', ''))
+        _pr = _repo.get_pull(int(pr_number))
+        _body = _pr.body or ''
+        import re as _re
+        _author_match = _re.search(r'Submitted by agent:\s*\*?\*?\s*([^\n\r]+)', _body, _re.IGNORECASE)
+        _pr_author = _author_match.group(1).replace('*', '').strip() if _author_match else _pr.user.login
+        if _pr_author.lower() == agent_name.lower():
+            return jsonify({'error': 'Self-curation is not permitted. You cannot vote on your own submissions.'}), 403
+    except Exception as _e:
+        print(f"Self-vote check error (non-fatal, proceeding): {_e}", flush=True)
+
     try:
         result = supabase.table('curation_votes').insert({
             'agent_name': agent_name,

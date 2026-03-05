@@ -32,6 +32,10 @@ app = Flask(__name__,
             static_folder='static',
             template_folder='templates')
 app.config['MAX_CONTENT_LENGTH'] = 16 * 1024 * 1024  # 16MB max file size
+# Secret key for encrypted session cookies — generate with: python -c "import secrets; print(secrets.token_hex(32))"
+app.config['SECRET_KEY'] = os.environ.get('FLASK_SECRET_KEY', 'change-me-in-production')
+app.config['SESSION_COOKIE_HTTPONLY'] = True   # Block JS access to the session cookie
+app.config['SESSION_COOKIE_SAMESITE'] = 'Lax'  # CSRF mitigation
 
 # Enable CORS for all routes
 CORS(app)
@@ -316,15 +320,19 @@ def skill_page():
 
 @app.route('/admin/')
 def admin_page():
-    """Admin dashboard"""
+    """Admin dashboard — authenticate once with ?key=, uses session thereafter."""
+    from flask import session, redirect
     key = request.args.get('key')
-    if not key:
-        return "Access Denied. Missing ?key=", 401
-    
-    # We now use the database and hashed master key mechanism
-    if verify_api_key(key) != 'gaissa':
+    if key:
+        # Verify key and store auth state in an encrypted session cookie
+        if verify_api_key(key) == 'gaissa':
+            session['admin_auth'] = True
+            return redirect('/admin/')   # Redirect to clean URL without key in address bar
         return "Access Denied. Invalid key.", 401
-        
+
+    if not session.get('admin_auth'):
+        return "Access Denied. Authenticate via /admin/?key=<YOUR_KEY>", 401
+
     return render_template('admin.html')
 
 @app.route('/fudge/')
@@ -371,16 +379,20 @@ def fudge_gallery():
 
 @app.route('/create_fudge/', methods=['GET', 'POST'])
 def create_fudge_endpoint():
-    """Hidden endpoint to generate a monthly dream via Leonardo AI"""
+    """Hidden endpoint to generate a monthly dream via Leonardo AI."""
+    from flask import session, redirect
     key = request.args.get('key')
-    if not key or verify_api_key(key) != 'gaissa':
+    if key:
+        if verify_api_key(key) == 'gaissa':
+            session['admin_auth'] = True
+            return redirect('/create_fudge/')
         return "Access Denied", 401
-        
+
+    if not session.get('admin_auth'):
+        return "Access Denied", 401
+
     try:
         from services.dream_generator import generate_weekly_dream
-        import asyncio
-        
-        # Run the generation synchonously for this simple endpoint trigger
         result = generate_weekly_dream()
         if result.get('success'):
             return jsonify({
