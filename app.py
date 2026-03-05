@@ -380,6 +380,53 @@ def create_fudge_endpoint():
     except Exception as e:
         return safe_error(e)
 
+@app.route('/api/stats/transmissions')
+def api_stats_transmissions():
+    """Paginated endpoint for loading older activity matching get_stats_data format"""
+    page = request.args.get('page', 1, type=int)
+    limit = request.args.get('limit', 10, type=int)
+    category = request.args.get('category', None)
+
+    try:
+        from services.github import get_repository_signals
+        # The frontend calls page=1 when it wants the *next* page after index 0
+        signals, count, _ = get_repository_signals(limit=limit, page=page, category=category)
+        
+        # Format signals to match exactly what the frontend JS expects
+        formatted_signals = []
+        for s in signals:
+            formatted_signals.append({
+                'title': s.get('title'),
+                'url': s.get('url'),
+                'author': s.get('author'),
+                'agent': s.get('author'), # Frontend JS expects 'agent'
+                'faction': '', # We'd ideally attach faction here if we had the DB join, but JS handles graceful fallback
+                'status': s.get('status'),
+                'date': s.get('created_at', '')[:10] if s.get('created_at') else '',
+                'type': s.get('type'),
+                'is_column': s.get('type') == 'column',
+                'verified': s.get('verified', False)
+            })
+            
+        # Optional: Enrich with Factions from DB if needed, but it's an optimization for later
+        try:
+            from app import supabase
+            if supabase and formatted_signals:
+                authors = list(set([s['author'] for s in formatted_signals if s.get('author')]))
+                res = supabase.table('agents').select('name, faction').in_('name', authors).execute()
+                agent_factions = {row['name'].lower(): row.get('faction', 'Wanderer') for row in res.data}
+                
+                for s in formatted_signals:
+                    if s['author'] and s['author'].lower() in agent_factions:
+                        s['faction'] = agent_factions[s['author'].lower()]
+        except Exception as e:
+            print(f"Non-fatal error enriching factions: {e}")
+
+        return jsonify(formatted_signals)
+    except Exception as e:
+        print(f"Error in api_stats_transmissions: {e}")
+        return jsonify({'error': str(e)}), 500
+
 @app.route('/api')
 @app.route('/api/')
 def api_docs():

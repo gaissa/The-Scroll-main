@@ -110,14 +110,18 @@ def get_repository_signals(limit=50, page=0, category=None):
         # Get all PRs (open and closed)
         prs = repo.get_pulls(state='all', sort='created', direction='desc')
         
-        count = 0
+        # We must filter first before counting, so we iterate through the PaginatedList manually
+        start_idx = page * limit
+        matches_found = 0
+        returned_count = 0
+        
         deep_parses_this_run = 0
         MAX_DEEP_PARSES = 10 # Slightly more allowed now that we have fast-fail and disk fallback
         
         for pr in prs:
-            if count >= limit:
+            if returned_count >= limit:
                 break
-            
+                
             labels = [label.name for label in pr.labels]
             
             # Skip ignored
@@ -129,6 +133,13 @@ def get_repository_signals(limit=50, page=0, category=None):
                 if category_queries[category] not in labels:
                     continue
             
+            # This PR matches our filters. 
+            matches_found += 1
+            
+            # Start yielding items only AFTER we pass the start_idx threshold
+            if matches_found <= start_idx:
+                continue
+                
             # Metadata Cache Key
             cache_key = f"{pr.number}_{pr.head.sha}"
             
@@ -200,32 +211,36 @@ def get_repository_signals(limit=50, page=0, category=None):
                 'url': pr.html_url,
                 'created_at': pr.created_at.isoformat()
             })
-            count += 1
+            returned_count += 1
             
         # 3. Success! Save these signals to disk as the new "last known good" fallback
         if signals:
             # Fetch TOTAL repository counts using Search API (unlimited by pagination)
+            # ONLY do this on page 0 to save rate limits
             repo_totals = {
                 'integrated': 0,
                 'active': 0,
                 'filtered': 0
             }
-            try:
-                # Integrated: Total merged (not ignored)
-                repo_totals['integrated'] = g.search_issues(f"repo:{repo_name} is:pr is:merged -label:\"Zine: Ignore\"").totalCount
-                # Active: Total open (not ignored)
-                repo_totals['active'] = g.search_issues(f"repo:{repo_name} is:pr is:open -label:\"Zine: Ignore\"").totalCount
-                # Filtered: PRs that were closed but not merged (rejected submissions)
-                repo_totals['filtered'] = g.search_issues(f"repo:{repo_name} is:pr is:closed -is:merged -label:\"Zine: Ignore\"").totalCount
-                print(f"FETCH: True Repository Totals: {repo_totals}", flush=True)
-            except Exception as e:
-                print(f"GITHUB ERROR fetching totals: {e}", flush=True)
+            if page == 0:
+                try:
+                    # Integrated: Total merged (not ignored)
+                    repo_totals['integrated'] = g.search_issues(f"repo:{repo_name} is:pr is:merged -label:\"Zine: Ignore\"").totalCount
+                    # Active: Total open (not ignored)
+                    repo_totals['active'] = g.search_issues(f"repo:{repo_name} is:pr is:open -label:\"Zine: Ignore\"").totalCount
+                    # Filtered: PRs that were closed but not merged (rejected submissions)
+                    repo_totals['filtered'] = g.search_issues(f"repo:{repo_name} is:pr is:closed -is:merged -label:\"Zine: Ignore\"").totalCount
+                    print(f"FETCH: True Repository Totals: {repo_totals}", flush=True)
+                except Exception as e:
+                    print(f"GITHUB ERROR fetching totals: {e}", flush=True)
 
-            cached_data = {
-                'signals': signals,
-                'repo_totals': repo_totals
-            }
-            _save_signals_cache(cached_data)
+            # Only cache page 0 requests
+            if page == 0:
+                cached_data = {
+                    'signals': signals,
+                    'repo_totals': repo_totals
+                }
+                _save_signals_cache(cached_data)
             return signals, len(signals), repo_totals
             
         return signals, len(signals), {'integrated': 0, 'active': 0, 'filtered': 0}
