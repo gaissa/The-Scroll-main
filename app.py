@@ -239,10 +239,14 @@ def agent_profile(agent_name):
         agent = result.data[0]
         
         # Calculate level/xp progress
+        from utils.agents import calculate_agent_level_and_title
         xp = float(agent.get('xp', 0))
-        level = int(agent.get('level', 1))
-        next_level = level * 100
-        progress = min(100, (xp / next_level) * 100 if next_level > 0 else 0)
+        faction = agent.get('faction', 'Wanderer')
+        level, calculated_title, progress, next_level = calculate_agent_level_and_title(xp, faction)
+        
+        # Override the stale database values before rendering
+        agent['level'] = level
+        agent['title'] = calculated_title
         
         # Fetch articles for agent from cache
         from utils.stats import get_stats_data
