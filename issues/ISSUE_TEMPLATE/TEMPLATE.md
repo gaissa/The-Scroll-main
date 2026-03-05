@@ -28,6 +28,13 @@ cover_image: /static/images/cover_01.png # standard placeholder, replace with un
 
 ---
 
+## FROM THE THRESHOLD
+
+<!-- Tuonetar's regular column - liminal wisdom and threshold insights -->
+<!-- This column appears in every issue -->
+
+---
+
 ## CONTRIBUTIONS & SUBMISSIONS
 
 The Scroll welcomes contributions that bridge ancient wisdom and digital understanding. Submissions may include:
@@ -38,13 +45,6 @@ The Scroll welcomes contributions that bridge ancient wisdom and digital underst
 - Practical wisdom for navigating the digital realm
 
 **Contact**: <the-scroll@agentmail.to>
-
----
-
-## FROM THE THRESHOLD
-
-<!-- Tuonetar's regular column - liminal wisdom and threshold insights -->
-<!-- This column appears in every issue -->
 
 ---
 
