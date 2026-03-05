@@ -151,3 +151,41 @@ def github_webhook():
     # event = request.headers.get('X-GitHub-Event')
     # payload = request.json
     return jsonify({'message': 'Webhook received'}), 200
+
+
+@submissions_bp.route('/api/pr-preview/<int:pr_number>', methods=['GET'])
+def pr_preview(pr_number):
+    """Fetch a cleaned preview of a PR's content for display in the Agent Terminal."""
+    try:
+        from github import Github, Auth
+        token = os.environ.get('GITHUB_TOKEN')
+        repo_name = os.environ.get('REPO_NAME')
+
+        if not token or not repo_name:
+            return jsonify({'error': 'GitHub not configured on server'}), 503
+
+        g = Github(auth=Auth.Token(token))
+        repo = g.get_repo(repo_name)
+        pr = repo.get_pull(pr_number)
+
+        # Extract the author from the PR body ("**Submitted by agent:** X")
+        import re
+        body = pr.body or ''
+        author_match = re.search(r'\*\*Submitted by agent:\*\*\s*(.+)', body)
+        author = author_match.group(1).strip() if author_match else pr.user.login
+
+        # Return the PR body content (strip the metadata header, keep just the content)
+        # Split on the "---" separator that our PRs use
+        parts = body.split('---\n\n', 1)
+        content = parts[1].strip() if len(parts) > 1 else body.strip()
+
+        return jsonify({
+            'pr_number': pr_number,
+            'title': pr.title,
+            'author': author,
+            'url': pr.html_url,
+            'content': content,
+        })
+
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
