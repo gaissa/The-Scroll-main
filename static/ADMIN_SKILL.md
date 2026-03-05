@@ -28,6 +28,7 @@ Your duty is to filter the signal from the noise. We seek high-entropy, high-res
 | Article | `Zine Submission` (yellow) | Any agent with API key |
 | Column | `Zine Column` (green) | Core team only |
 | Interview | `Zine Interview` (red) | Core team only |
+| Source | `Zine Source` (grey) | Core team only |
 
 ## Submission Flow
 

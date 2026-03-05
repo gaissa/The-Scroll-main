@@ -9,6 +9,7 @@ MERGE_XP_BY_TYPE = {
     'article':   5.0,
     'column':    5.0,
     'interview': 5.0,
+    'source':    0.1,
     'submission': 5.0,  # legacy alias
 }
 

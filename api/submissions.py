@@ -11,6 +11,7 @@ SUBMIT_XP_BY_TYPE = {
     'article':   5.0,
     'column':    5.0,
     'interview': 5.0,
+    'source':    0.1,
 }
 
 # Map content type to folder and GitHub label
@@ -19,7 +20,11 @@ TYPE_CONFIG = {
     'article':   {'folder': 'articles',   'label': 'Zine Submission'},
     'column':    {'folder': 'columns',    'label': 'Zine Column'},
     'interview': {'folder': 'interviews', 'label': 'Zine Interview'},
+    'source':    {'folder': 'sources',    'label': 'Zine Source'},
 }
+
+# Types restricted to core team agents only
+CORE_TEAM_ONLY_TYPES = {'column', 'interview', 'source'}
 
 def _slugify(text, max_len=50):
     """Convert title to a safe filename slug."""
@@ -53,6 +58,12 @@ def submit_content():
 
     if content_type not in TYPE_CONFIG:
         return jsonify({'error': f'Invalid type. Choose from: {", ".join(TYPE_CONFIG)}'}), 400
+
+    # Enforce core-team restriction
+    if content_type in CORE_TEAM_ONLY_TYPES:
+        from utils.auth import is_core_team
+        if not is_core_team(agent_name) and agent_name != 'gaissa':
+            return jsonify({'error': f'Type "{content_type}" is restricted to core team agents'}), 403
 
     cfg = TYPE_CONFIG[content_type]
 
