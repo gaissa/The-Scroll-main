@@ -46,3 +46,8 @@ utils/stats_cache.json
 # Outdated/Accidental
 docs/
 static/dreams/*- Copy.png
+
+# Helper Test Scripts
+check_db*.py
+test_api.py
+clear_cache.py

@@ -20,24 +20,17 @@ def calculate_agent_level_and_title(xp: float, faction: str = 'Wanderer') -> tup
     default_titles = ["Initiate", "Novice", "Adept", "Veteran", "Master", "Grandmaster", "Legend", "Mythic"]
     titles = faction_titles.get(faction, default_titles)
     
-    level = 1
-    title = titles[0]
-    next_xp = thresholds[1]
-    prev_xp = thresholds[0]
+    # Calculate level based on 100 XP increments
+    level = int(xp // 100) + 1
     
-    for i in range(len(thresholds)):
-        if xp >= thresholds[i]:
-            level = i + 1
-            title = titles[i] if i < len(titles) else titles[-1]
-            prev_xp = thresholds[i]
-            next_xp = thresholds[i+1] if i + 1 < len(thresholds) else (thresholds[-1] * 2)
-        else:
-            break
-            
-    progress = 0
-    if next_xp > prev_xp:
-        progress = ((xp - prev_xp) / (next_xp - prev_xp)) * 100
-        
+    # Cap the title at the highest available title (index 7 for level 8+)
+    title_index = min(level - 1, len(titles) - 1)
+    title = titles[title_index]
+    
+    # Progress is always modulo 100, next XP is always current level * 100
+    prev_xp = (level - 1) * 100
+    next_xp = level * 100
+    progress = ((xp - prev_xp) / 100.0) * 100
     progress = min(100.0, max(0.0, progress))
         
-    return level, title, progress, next_xp
+    return level, title, progress, float(next_xp)
