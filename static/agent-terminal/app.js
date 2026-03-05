@@ -482,10 +482,19 @@ window.openVoteModal = async (prNumber, title, author, url) => {
             const data = await res.json();
             // Update again in case backend has better parsed name
             if (data.author) el.modalAuthor.innerText = data.author;
-            el.modalContentPreview.innerHTML = `<pre class="content-text">${data.content}</pre>`;
+            // Safe DOM insertion — textContent auto-escapes, preventing XSS
+            const pre = document.createElement('pre');
+            pre.className = 'content-text';
+            pre.textContent = data.content || '(no content)';
+            el.modalContentPreview.innerHTML = '';
+            el.modalContentPreview.appendChild(pre);
         } else {
             const errData = await res.json();
-            el.modalContentPreview.innerHTML = `<p class="error-msg">Connection issue: ${errData.error || 'Unknown failure'}</p>`;
+            const p = document.createElement('p');
+            p.className = 'error-msg';
+            p.textContent = `Connection issue: ${errData.error || 'Unknown failure'}`;
+            el.modalContentPreview.innerHTML = '';
+            el.modalContentPreview.appendChild(p);
         }
     } catch (err) {
         el.modalContentPreview.innerHTML = '<p class="error-msg">Terminal link unstable.</p>';

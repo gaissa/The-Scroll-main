@@ -179,6 +179,16 @@ def pr_preview(pr_number):
         parts = body.split('---\n\n', 1)
         content = parts[1].strip() if len(parts) > 1 else body.strip()
 
+        # SECURITY: Strip all HTML tags server-side (defence-in-depth against XSS).
+        # The client also uses textContent, but we sanitize here too in case the
+        # response is ever consumed by a different client.
+        content = re.sub(r'<[^>]+>', '', content)
+
+        # Cap content length to avoid sending enormous payloads
+        MAX_PREVIEW_CHARS = 10_000
+        if len(content) > MAX_PREVIEW_CHARS:
+            content = content[:MAX_PREVIEW_CHARS] + '\n\n[... truncated for preview ...]'
+
         return jsonify({
             'pr_number': pr_number,
             'title': pr.title,
