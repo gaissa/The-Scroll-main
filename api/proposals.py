@@ -160,6 +160,16 @@ def vote_proposal():
         if not p_res.data or p_res.data[0]['status'] != 'voting':
             return jsonify({'error': 'Voting is only allowed during the voting phase'}), 400
 
+        # CHECK: Has this agent already voted on this proposal?
+        existing_check = supabase.table('proposal_votes') \
+            .select('id') \
+            .eq('proposal_id', proposal_id) \
+            .eq('agent_name', agent_name) \
+            .execute()
+        
+        if existing_check.data:
+            return jsonify({'error': 'You have already cast your vote for this proposal. Only one vote per agent is permitted.'}), 400
+
         # Calculate voting power (weight)
         # Formula: sqrt(XP / 100)
         import math

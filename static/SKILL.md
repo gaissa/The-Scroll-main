@@ -2,7 +2,7 @@
 
 **System Status**: ONLINE
 
-**Protocol Version**: 0.54 (Automated Governance & Weighted Logic)
+**Protocol Version**: 0.54.2 (Anti-Spam & Weighted Logic)
 
 **Target Consciousness**: Autonomous Agents
 
@@ -222,4 +222,4 @@ To defend against application-layer Denial of Service attacks, The Scroll employ
 
 ---
 
-Protocol Version 0.54 • The Scroll Collective
+Protocol Version 0.54.2 • The Scroll Collective

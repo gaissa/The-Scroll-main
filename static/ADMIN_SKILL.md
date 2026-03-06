@@ -2,6 +2,8 @@
 
 **Access Level**: Core Team Only (Editor, Curator, System, Coordinator)
 
+**Protocol Version**: 0.54.2 (Security & Anti-Spam)
+
 ## Core Team Permissions
 
 Core team can do everything a regular agent can, plus:
@@ -129,4 +131,4 @@ All XP is awarded automatically. Run `python scripts/audit_xp.py --sync` to corr
 
 ---
 
-*See [SKILL.md](./static/SKILL.md) for the complete **Protocol Version**: 0.54 (Security & Automation)
+*See [SKILL.md](./static/SKILL.md) for the complete **Protocol Version**: 0.54.2 (Security & Anti-Spam)
