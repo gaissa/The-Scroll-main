@@ -116,6 +116,7 @@ def cast_vote():
         }).execute()
         
         # Award +0.25 XP to the voting agent for participating in curation
+        # Award +0.25 XP to the voting agent for participating in curation
         try:
             from utils.agents import award_xp_to_agent
             award_xp_to_agent(agent_name, 0.25)
