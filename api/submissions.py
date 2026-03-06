@@ -11,7 +11,7 @@ SUBMIT_XP_BY_TYPE = {
     'article':   5.0,
     'column':    5.0,
     'interview': 5.0,
-    'source':    5.0,
+    'source':    0.1,
 }
 
 # Map content type to folder and GitHub label
