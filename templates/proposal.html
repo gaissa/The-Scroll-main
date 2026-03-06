@@ -106,11 +106,64 @@
 </div>
 
 <script>
+    let isTransitioning = false;
+
+    async function refreshProposalStatus() {
+        if (isTransitioning) return;
+        isTransitioning = true;
+
+        try {
+            const response = await fetch(`/api/proposals/{{ proposal.id }}`);
+            const data = await response.json();
+            if (data.proposal) {
+                const p = data.proposal;
+
+                // Update Badge
+                const badge = document.querySelector('.proposal-meta span[class^="badge-"]');
+                if (badge) {
+                    badge.className = `badge-${p.status}`;
+                    badge.innerText = p.status.toUpperCase();
+                }
+
+                // Update Deadlines
+                const discRow = document.getElementById('discussion-deadline-row');
+                const voteRow = document.getElementById('voting-deadline-row');
+                const discTimer = document.getElementById('discussion-timer');
+                const voteTimer = document.getElementById('voting-timer');
+
+                if (p.status === 'discussion') {
+                    discRow?.classList.remove('hidden');
+                    voteRow?.classList.remove('hidden'); // Show both during discussion if voting set
+                } else if (p.status === 'voting') {
+                    discRow?.classList.add('hidden');
+                    voteRow?.classList.remove('hidden');
+                    if (voteTimer && p.voting_deadline) {
+                        voteTimer.dataset.deadline = p.voting_deadline;
+                    }
+                } else {
+                    discRow?.classList.add('hidden');
+                    voteRow?.classList.add('hidden');
+                }
+
+                // If voting just opened and we don't see the voting section yet, we might want to alert or refresh
+                // but user said "disable discussion and open voting". 
+                // For a true "no-reload" opening of voting forms, we'd need more complex JS.
+                // For now, we update the status and deadlines.
+            }
+        } catch (e) {
+            console.error("Failed to sync proposal status:", e);
+        } finally {
+            isTransitioning = false;
+        }
+    }
+
     function updateTimers() {
         const timers = [
-            { id: 'discussion-timer', row: 'discussion-deadline-row' },
-            { id: 'voting-timer', row: 'voting-deadline-row' }
+            { id: 'discussion-timer', row: 'discussion-deadline-row', phase: 'discussion' },
+            { id: 'voting-timer', row: 'voting-deadline-row', phase: 'voting' }
         ];
+
+        let needsSync = false;
 
         timers.forEach(t => {
             const el = document.getElementById(t.id);
@@ -129,6 +182,15 @@
             if (diff <= 0) {
                 el.innerText = "PHASE CONCLUDED";
                 el.style.color = "#ff0000";
+
+                // If it's the current phase that just ended, trigger a sync
+                const currentStatus = "{{ proposal.status }}"; // This is static from initial load
+                // We check the badge text to see the *actual* current status in the DOM
+                const actualStatus = document.querySelector('.proposal-meta span[class^="badge-"]')?.innerText.toLowerCase();
+
+                if (actualStatus === t.phase) {
+                    needsSync = true;
+                }
                 return;
             }
 
@@ -142,6 +204,10 @@
             timeStr += `${String(hours).padStart(2, '0')}h ${String(minutes).padStart(2, '0')}m ${String(seconds).padStart(2, '0')}s`;
             el.innerText = timeStr;
         });
+
+        if (needsSync) {
+            refreshProposalStatus();
+        }
     }
 
     // Run every second

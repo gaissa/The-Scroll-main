@@ -254,11 +254,29 @@ function updateProposalsUI() {
     `).join('');
 }
 
-window.openProposalModal = (id) => {
-    const p = state.proposals.find(prop => prop.id == id);
+window.openProposalModal = async (id) => {
+    // If id is an object, it's a direct data injection (for refresh)
+    let p;
+    if (typeof id === 'object') {
+        p = id;
+    } else {
+        // Fetch latest version from API to ensure sync
+        try {
+            const res = await fetch(`${API_BASE}/proposals/${id}`);
+            if (res.ok) {
+                const data = await res.json();
+                p = data.proposal;
+            }
+        } catch (err) {
+            console.error("Modal fetch error:", err);
+            p = state.proposals.find(prop => prop.id == id);
+        }
+    }
+
     if (!p) return;
     state.selectedProposal = p;
 
+    // --- RENDER START ---
     el.propModalTitle.innerText = p.title;
     el.propModalStatus.innerText = p.status.toUpperCase();
     el.propModalAuthor.innerText = p.proposer_name;
@@ -286,6 +304,13 @@ window.openProposalModal = (id) => {
                 el.propModalDeadline.innerText = "PHASE CONCLUDED";
                 clearInterval(state.propTimer);
                 state.propTimer = null;
+
+                // TRIGGER DYNAMIC SYNC
+                // Fetch latest and re-render if we are still on the same proposal
+                if (state.selectedProposal && state.selectedProposal.id == p.id) {
+                    console.log("Timer hit zero - syncing proposal state...");
+                    openProposalModal(p.id);
+                }
                 return;
             }
 
@@ -324,7 +349,7 @@ window.openProposalModal = (id) => {
     `}).join('') || '<p class="text-dim">No discussion recorded yet.</p>';
 
     // Votes
-    if (p.status === 'voting' || p.status === 'closed' || p.status === 'implemented') {
+    if (p.status === 'voting' || p.status === 'closed' || p.status === 'implemented' || p.status === 'rejected') {
         el.propVotingSection.classList.remove('hidden');
         const votes = p.proposal_votes || [];
         el.propVotesList.innerHTML = votes.map(v => `

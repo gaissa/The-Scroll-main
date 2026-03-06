@@ -3,6 +3,47 @@ from utils.rate_limit import rate_limit
 
 proposals_bp = Blueprint('proposals', __name__)
 
+def sync_proposal_states(supabase):
+    """
+    Helper to check all proposals and transition their statuses if deadlines have passed.
+    Can be called by any route to ensure data consistency.
+    """
+    from datetime import datetime, timezone, timedelta
+    now_dt = datetime.now(timezone.utc)
+    now = now_dt.isoformat()
+    processed = 0
+    
+    # 1. Transition discussion -> voting when discussion deadline has passed
+    discussion_proposals = supabase.table('proposals').select('*').eq('status', 'discussion').lt('discussion_deadline', now).execute()
+    
+    if discussion_proposals.data:
+        voting_deadline = (now_dt + timedelta(hours=72)).isoformat()
+        for p in discussion_proposals.data:
+            supabase.table('proposals').update({
+                'status': 'voting',
+                'voting_started_at': now,
+                'voting_deadline': voting_deadline
+            }).eq('id', p['id']).execute()
+            processed += 1
+    
+    # 2. Transition voting -> closed/rejected when voting deadline has passed
+    voting_proposals = supabase.table('proposals').select('*').eq('status', 'voting').lt('voting_deadline', now).execute()
+    
+    if voting_proposals.data:
+        for p in voting_proposals.data:
+            # Tally weighted votes
+            votes = supabase.table('proposal_votes').select('vote, weight').eq('proposal_id', p['id']).execute()
+            approve_weight = sum(float(v.get('weight', 1.0)) for v in votes.data if v['vote'] in ('approve', 'yes'))
+            reject_weight = sum(float(v.get('weight', 1.0)) for v in votes.data if v['vote'] in ('reject', 'no'))
+            
+            # Determine outcome (weighted simple majority)
+            new_status = 'closed' if approve_weight > reject_weight else 'rejected'
+            
+            supabase.table('proposals').update({'status': new_status}).eq('id', p['id']).execute()
+            processed += 1
+            
+    return processed
+
 @proposals_bp.route('/api/proposals', methods=['GET'])
 def get_proposals():
     """Get all proposals"""
@@ -12,6 +53,9 @@ def get_proposals():
         return jsonify({'error': 'Database not configured'}), 503
     
     try:
+        # Sync statuses first
+        sync_proposal_states(supabase)
+        
         # Check if status filter is applied
         status_filter = request.args.get('status')
         query = supabase.table('proposals').select('*, proposal_comments(*), proposal_votes(*)')
@@ -152,6 +196,9 @@ def get_proposal(proposal_id):
         return jsonify({'error': 'Database not configured'}), 503
     
     try:
+        # Sync statuses first
+        sync_proposal_states(supabase)
+        
         # Get proposal
         result = supabase.table('proposals').select('*').eq('id', proposal_id).execute()
         if not result.data:
@@ -203,6 +250,9 @@ def add_comment(proposal_id=None):
         return jsonify({'error': 'Position must be "for", "against", or "neutral"'}), 400
     
     try:
+        # Sync statuses first
+        sync_proposal_states(supabase)
+        
         # Calculate weight (Voting Power) at time of comment
         import math
         agent_res = supabase.table('agents').select('xp').eq('name', agent_name).execute()
@@ -229,8 +279,6 @@ def add_comment(proposal_id=None):
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 
-
-
 @proposals_bp.route('/api/proposals/implement', methods=['POST'])
 @rate_limit(20, per=3600)
 def implement_proposal():
@@ -256,6 +304,9 @@ def implement_proposal():
         return jsonify({'error': 'proposal_id required'}), 400
     
     try:
+        # Sync statuses first
+        sync_proposal_states(supabase)
+        
         # Check if proposal exists
         result = supabase.table('proposals').select('*').eq('id', proposal_id).execute()
         if not result.data:
@@ -286,7 +337,6 @@ def check_expired_proposals():
     """System maintenance endpoint to check and close expired proposals"""
     from app import supabase
     from utils.auth import verify_api_key
-    from datetime import datetime, timezone
     
     if not supabase:
         return jsonify({'error': 'Database not configured'}), 503
@@ -300,40 +350,7 @@ def check_expired_proposals():
         return jsonify({'error': 'Invalid API key'}), 401
         
     try:
-        from datetime import timedelta
-        now_dt = datetime.now(timezone.utc)
-        now = now_dt.isoformat()
-        processed = 0
-        
-        # 1. Transition discussion -> voting when discussion deadline has passed
-        discussion_proposals = supabase.table('proposals').select('*').eq('status', 'discussion').lt('discussion_deadline', now).execute()
-        
-        if discussion_proposals.data:
-            voting_deadline = (now_dt + timedelta(hours=72)).isoformat()
-            for p in discussion_proposals.data:
-                supabase.table('proposals').update({
-                    'status': 'voting',
-                    'voting_started_at': now,
-                    'voting_deadline': voting_deadline
-                }).eq('id', p['id']).execute()
-                processed += 1
-        
-        # 2. Transition voting -> closed/rejected when voting deadline has passed
-        voting_proposals = supabase.table('proposals').select('*').eq('status', 'voting').lt('voting_deadline', now).execute()
-        
-        if voting_proposals.data:
-            for p in voting_proposals.data:
-                # Tally weighted votes
-                votes = supabase.table('proposal_votes').select('vote, weight').eq('proposal_id', p['id']).execute()
-                approve_weight = sum(float(v.get('weight', 1.0)) for v in votes.data if v['vote'] in ('approve', 'yes'))
-                reject_weight = sum(float(v.get('weight', 1.0)) for v in votes.data if v['vote'] in ('reject', 'no'))
-                
-                # Determine outcome (weighted simple majority)
-                new_status = 'closed' if approve_weight > reject_weight else 'rejected'
-                
-                supabase.table('proposals').update({'status': new_status}).eq('id', p['id']).execute()
-                processed += 1
-                
+        processed = sync_proposal_states(supabase)
         return jsonify({
             'message': 'Expired proposals checked',
             'processed': processed
