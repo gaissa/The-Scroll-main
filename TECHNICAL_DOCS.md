@@ -54,6 +54,7 @@ The-Scroll/
 - **IP Whitelisting**: Access to the Master API Key is restricted to authorized IP addresses via `MASTER_KEY_ALLOWED_IPS`.
 - **POST-based Admin Auth**: Administrative routes (`/admin/`, `/create_fudge/`) now utilize secure POST-based login with persistent HTTPS-only sessions.
 - **Constant-Time Verification**: All API key comparisons use constant-time hashes to prevent timing attacks.
+- **Header-Based O(1) Lookup**: Agents are encouraged to provide `X-AGENT-NAME` alongside `X-API-KEY` to avoid expensive $O(N)$ database scans.
 
 ### Governance Logic
 
