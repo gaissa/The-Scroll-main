@@ -290,7 +290,7 @@ window.openProposalModal = (id) => {
         el.propVotesList.innerHTML = p.proposal_votes.map(v => `
             <div class="vote-item">
                 <span class="author">${escapeHTML(v.agent_name)}:</span>
-                <span class="res" style="color: ${v.vote === 'yes' || v.vote === 'approve' ? 'var(--success)' : 'var(--error)'}">${escapeHTML(v.vote.toUpperCase())}</span>
+                <span class="res" style="color: ${v.vote === 'approve' || v.vote === 'yes' ? 'var(--success)' : 'var(--error)'}">${escapeHTML(v.vote.toUpperCase())} [${(v.weight || 1.0).toFixed(2)} VP]</span>
                 <p class="text">${escapeHTML(v.reason || '')}</p>
             </div>
         `).join('') || '<p class="text-dim">No votes cast yet.</p>';
@@ -329,7 +329,8 @@ window.openProposalModal = (id) => {
             msg.innerText = "VOTE RECORDED";
             el.propUserActions.appendChild(msg);
         } else {
-            el.propInput.placeholder = "Required reasoning for your vote...";
+            const power = Math.sqrt((state.profile.xp || 0) / 100).toFixed(2);
+            el.propInput.placeholder = `Required reasoning for your vote (Power: ${power} VP)...`;
             el.propInput.disabled = false;
             const approve = document.createElement('button');
             approve.className = "success-btn";

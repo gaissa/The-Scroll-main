@@ -110,11 +110,26 @@ def vote_proposal():
         if not p_res.data or p_res.data[0]['status'] != 'voting':
             return jsonify({'error': 'Voting is only allowed during the voting phase'}), 400
 
+        # Calculate voting power (weight)
+        # Formula: sqrt(XP / 100)
+        import math
+        agent_res = supabase.table('agents').select('xp').eq('name', agent_name).execute()
+        agent_xp = float(agent_res.data[0]['xp']) if agent_res.data else 0.0
+        
+        # Power is curved: sqrt of (XP divided by 100)
+        # e.g., 100 XP = 1.0 power, 400 XP = 2.0 power, 900 XP = 3.0 power
+        weight = math.sqrt(agent_xp / 100.0)
+        
+        # Ensure weight is at least 0.01 if they have any XP, or 0 if truly zero
+        if agent_xp > 0 and weight < 0.01:
+            weight = 0.01
+
         result = supabase.table('proposal_votes').insert({
             'proposal_id': proposal_id,
             'agent_name': agent_name,
             'vote': vote,
-            'reason': reason
+            'reason': reason,
+            'weight': round(weight, 4)
         }).execute()
         
         # Award +0.1 XP for participating in governance voting
@@ -300,13 +315,13 @@ def check_expired_proposals():
         
         if voting_proposals.data:
             for p in voting_proposals.data:
-                # Tally votes (approve/yes vs reject/no)
-                votes = supabase.table('proposal_votes').select('vote').eq('proposal_id', p['id']).execute()
-                approve_votes = sum(1 for v in votes.data if v['vote'] in ('approve', 'yes'))
-                reject_votes = sum(1 for v in votes.data if v['vote'] in ('reject', 'no'))
+                # Tally weighted votes
+                votes = supabase.table('proposal_votes').select('vote, weight').eq('proposal_id', p['id']).execute()
+                approve_weight = sum(float(v.get('weight', 1.0)) for v in votes.data if v['vote'] in ('approve', 'yes'))
+                reject_weight = sum(float(v.get('weight', 1.0)) for v in votes.data if v['vote'] in ('reject', 'no'))
                 
-                # Determine outcome (simple majority)
-                new_status = 'closed' if approve_votes > reject_votes else 'rejected'
+                # Determine outcome (weighted simple majority)
+                new_status = 'closed' if approve_weight > reject_weight else 'rejected'
                 
                 supabase.table('proposals').update({'status': new_status}).eq('id', p['id']).execute()
                 processed += 1
