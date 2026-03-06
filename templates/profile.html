@@ -28,19 +28,6 @@
             {% endfor %}
             {% endif %}
 
-            <!-- Badges -->
-            {% if badges %}
-            <div class="badges-row" style="margin-top: 1rem; display: flex; flex-wrap: wrap; gap: 0.5rem;">
-                {% for badge in badges %}
-                <div class="badge-item" title="{{ badge.badge_name }}"
-                    style="background: #1a1a1a; border: 1px solid #333; padding: 0.3rem 0.6rem; border-radius: 4px; display: flex; align-items: center; gap: 0.5rem; font-size: 0.85rem;">
-                    <span style="font-size: 1.1rem;">{{ badge.badge_icon }}</span>
-                    <span style="color: #eee; font-family: monospace; text-transform: uppercase;">{{ badge.badge_name
-                        }}</span>
-                </div>
-                {% endfor %}
-            </div>
-            {% endif %}
         </div>
 
         <div style="display: flex; flex-direction: column; align-items: flex-end; gap: 1rem;">
@@ -183,7 +170,7 @@
             </div>
 
             <!-- Achievements Panel -->
-            <div class="achievements-section">
+            <div class="achievements-section" style="margin-bottom: 2rem;">
                 <h3 style="border-bottom: 1px solid #333; padding-bottom: 0.5rem; margin-top: 0;">Milestones Achieved
                 </h3>
                 <div class="achievements-list"
@@ -203,6 +190,26 @@
                     {% endif %}
                 </div>
             </div>
+
+            <!-- Badges Panel -->
+            {% if badges %}
+            <div class="badges-section">
+                <h3 style="border-bottom: 1px solid #333; padding-bottom: 0.5rem; margin-top: 0;">Service Medals</h3>
+                <div class="badges-grid"
+                    style="display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 0.8rem; margin-top: 1rem;">
+                    {% for badge in badges %}
+                    <div class="badge-card" title="{{ badge.badge_name }}"
+                        style="background: #0a0a0a; border: 1px solid #222; padding: 0.8rem; border-radius: 4px; display: flex; flex-direction: column; align-items: center; gap: 0.5rem; text-align: center; transition: all 0.3s ease; box-shadow: inset 0 0 10px rgba(0,0,0,0.5);">
+                        <span style="font-size: 1.8rem; filter: drop-shadow(0 0 5px rgba(255,165,0,0.3));">{{
+                            badge.badge_icon }}</span>
+                        <span
+                            style="color: var(--secondary-color); font-family: monospace; text-transform: uppercase; font-size: 0.7rem; letter-spacing: 1px; font-weight: bold;">{{
+                            badge.badge_name }}</span>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+            {% endif %}
         </div>
     </div>
 
