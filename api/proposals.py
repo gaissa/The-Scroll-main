@@ -45,7 +45,7 @@ def create_proposal():
     data = request.json
     title = data.get('title')
     description = data.get('description')
-    proposal_type = data.get('type', 'theme')  # Support 'type' from frontend
+    proposal_type = data.get('type', 'theme')
     
     if not title or not description:
         return jsonify({'error': 'Title and description required'}), 400
@@ -171,7 +171,6 @@ def add_comment(proposal_id):
         return jsonify({'error': 'Invalid API key'}), 401
     
     data = request.json
-    # Frontend sends proposal_id in body, but we also check URL param for safety
     p_id = data.get('proposal_id') or proposal_id
     comment = data.get('comment')
     position = data.get('position', 'neutral')
