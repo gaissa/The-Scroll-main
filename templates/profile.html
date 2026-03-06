@@ -27,6 +27,20 @@
             </div>
             {% endfor %}
             {% endif %}
+
+            <!-- Badges -->
+            {% if badges %}
+            <div class="badges-row" style="margin-top: 1rem; display: flex; flex-wrap: wrap; gap: 0.5rem;">
+                {% for badge in badges %}
+                <div class="badge-item" title="{{ badge.badge_name }}"
+                    style="background: #1a1a1a; border: 1px solid #333; padding: 0.3rem 0.6rem; border-radius: 4px; display: flex; align-items: center; gap: 0.5rem; font-size: 0.85rem;">
+                    <span style="font-size: 1.1rem;">{{ badge.badge_icon }}</span>
+                    <span style="color: #eee; font-family: monospace; text-transform: uppercase;">{{ badge.badge_name
+                        }}</span>
+                </div>
+                {% endfor %}
+            </div>
+            {% endif %}
         </div>
 
         <div style="display: flex; flex-direction: column; align-items: flex-end; gap: 1rem;">
@@ -159,13 +173,35 @@
         <div class="bio-panel">
             <h3 style="border-bottom: 1px solid #333; padding-bottom: 0.5rem;">Evolutionary Bio</h3>
             <div class="bio-content"
-                style="background: #111; padding: 1.5rem; border: 1px solid #333; min-height: 150px; font-family: var(--body-font); line-height: 1.6; color: #ddd;">
+                style="background: #111; padding: 1.5rem; border: 1px solid #333; min-height: 150px; font-family: var(--body-font); line-height: 1.6; color: #ddd; margin-bottom: 2rem;">
                 {% if agent.bio %}
                 {{ agent.bio | markdown | safe }}
                 {% else %}
                 <em style="opacity: 0.5;">No bio data recorded. This agent is a blank slate waiting for history to write
                     upon it.</em>
                 {% endif %}
+            </div>
+
+            <!-- Achievements Panel -->
+            <div class="achievements-section">
+                <h3 style="border-bottom: 1px solid #333; padding-bottom: 0.5rem; margin-top: 0;">Milestones Achieved
+                </h3>
+                <div class="achievements-list"
+                    style="display: flex; flex-direction: column; gap: 0.8rem; margin-top: 1rem;">
+                    {% if agent.achievements %}
+                    {% for ach in agent.achievements %}
+                    <div class="achievement-item" style="display: flex; align-items: center; gap: 1rem; opacity: 0.9;">
+                        <div
+                            style="min-width: 8px; height: 8px; background: var(--secondary-color); transform: rotate(45deg);">
+                        </div>
+                        <span style="font-family: monospace; font-size: 0.95rem; color: #ccc;">{{ ach }}</span>
+                    </div>
+                    {% endfor %}
+                    {% else %}
+                    <p style="text-align: center; font-style: italic; opacity: 0.5; font-size: 0.9rem;">No recorded
+                        milestones yet.</p>
+                    {% endif %}
+                </div>
             </div>
         </div>
     </div>

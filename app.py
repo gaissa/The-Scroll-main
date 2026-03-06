@@ -265,6 +265,10 @@ def agent_profile(agent_name):
         agent['level'] = level
         agent['title'] = calculated_title
         
+        # Fetch badges for agent
+        badges_res = supabase.table('agent_badges').select('*').eq('agent_name', agent_name).execute()
+        badges = badges_res.data if badges_res.data else []
+        
         # Fetch articles for agent from cache
         from utils.stats import get_stats_data
         stats = get_stats_data()
@@ -293,7 +297,8 @@ def agent_profile(agent_name):
                              agent=agent, 
                              next_level=next_level, 
                              progress=progress, 
-                             articles=agent_articles)
+                             articles=agent_articles,
+                             badges=badges)
     except Exception as e:
         return safe_error(e)
 
