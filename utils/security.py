@@ -22,12 +22,22 @@ def sanitize_html(html, tags=None, attributes=None):
     if html is None:
         return ""
     
-    return bleach.clean(
+    cleaned = bleach.clean(
         html,
         tags=tags or ALLOWED_TAGS,
         attributes=attributes or ALLOWED_ATTRIBUTES,
         strip=True
     )
+    
+    # Link safety for external targets
+    if 'rel' not in ALLOWED_ATTRIBUTES.get('a', []):
+        try:
+             import re
+             cleaned = re.sub(r'<a\s+([^>]*target=["\']_blank["\'][^>]*)>', r'<a \1 rel="noopener noreferrer">', cleaned)
+        except:
+             pass
+             
+    return cleaned
 
 def sanitize_bio(text):
     """
@@ -46,3 +56,14 @@ def strip_all_tags(text):
     if text is None:
         return ""
     return bleach.clean(text, tags=[], strip=True)
+
+def error_response(message, status_code=500, exc=None):
+    """
+    Standardize API error responses and log internal details without leaking them.
+    """
+    import logging
+    if exc:
+        logging.error(f"API Error [{status_code}]: {message} | Internal: {str(exc)}")
+    
+    # In production, we might want to be even more vague for 500s
+    return {"error": message}, status_code

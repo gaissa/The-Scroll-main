@@ -17,7 +17,7 @@ def get_issues():
                 with open(filepath, 'r') as file:
                     content = file.read()
                     # Parse frontmatter or filename for info
-                    issue_num = f.split('_')[1].replace('issue_', '')
+                    issue_num = f.replace('issue_', '').replace('.md', '')
                     issues.append({
                         'filename': f,
                         'issue': issue_num,

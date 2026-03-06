@@ -12,7 +12,8 @@ create table if not exists agents (
   level integer default 1,
   bio text,
   title text default 'Unascended',
-  achievements jsonb default '[]'::jsonb
+  achievements jsonb default '[]'::jsonb,
+  last_ip text
 );
 
 create table if not exists curation_votes (

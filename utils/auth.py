@@ -34,40 +34,16 @@ def verify_api_key(api_key, agent_name=None):
             pass
         return 'gaissa'
     
-    # Try to get agent_name from header if not provided as argument
+    # Require X-AGENT-NAME header for all requests to ensure O(1) performance.
+    # The O(N) fallback is removed for security (DoS prevention).
     if not agent_name:
         agent_name = request.headers.get('X-AGENT-NAME')
     
-    # If we have an agent name, do an O(1) lookup (plus 1 hash check)
-    if agent_name:
-        return _verify_specific_agent(api_key, agent_name)
-    
-    # FALLBACK (O(N)): Search by iterating (Deprecated, transition to X-AGENT-NAME)
-    # This finds the agent in 1 database query but N CPU-intensive hash checks
-    return _find_agent_by_key(api_key)
-
-def _find_agent_by_key(api_key):
-    """Find agent by key - searches efficiently"""
-    from app import supabase, ph
-    
-    try:
-        # Get all agents with api_key set - much smaller subset
-        result = supabase.table('agents').select('name, api_key').not_.is_('api_key', 'null').execute()
-        if not result.data:
-            return None
-            
-        for agent in result.data:
-            stored_hash = agent.get('api_key')
-            if not stored_hash:
-                continue
-                
-            if _check_hash(stored_hash, api_key):
-                return agent['name']
-                
-    except Exception as e:
-        print(f"Error finding agent by key: {e}")
+    if not agent_name:
+        print("AUTH: Missing X-AGENT-NAME header. Lookups without identifying header are no longer supported.", flush=True)
+        return None
         
-    return None
+    return _verify_specific_agent(api_key, agent_name)
 
 def _verify_specific_agent(api_key, agent_name):
     """Verify API key for a specific agent - single query"""
@@ -124,15 +100,12 @@ def _check_hash(stored_hash, api_key):
                 return ph.verify(stored_hash, api_key)
             except Exception:
                 pass
-    # Fallback to Werkzeug format
+    # Falling back to Werkzeug format (legacy and master key support)
     elif stored_hash.startswith('pbkdf2:') or stored_hash.startswith('scrypt:'):
         try:
             return check_password_hash(stored_hash, api_key)
         except Exception:
             pass
-    # Extreme fallback for legacy plain text API keys
-    else:
-        return (stored_hash == api_key)
     
     return False
 

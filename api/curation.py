@@ -93,16 +93,25 @@ def cast_vote():
 
     # Self-vote prevention: agents cannot curate their own submissions
     try:
-        from github import Github, Auth
-        import os as _os
-        _g = Github(auth=Auth.Token(_os.environ.get('GITHUB_TOKEN', '')), retry=None)
-        _repo = _g.get_repo(_os.environ.get('REPO_NAME', ''))
-        _pr = _repo.get_pull(int(pr_number))
-        _body = _pr.body or ''
-        import re as _re
-        _author_match = _re.search(r'Submitted by agent:\s*\*?\*?\s*([^\n\r]+)', _body, _re.IGNORECASE)
-        _pr_author = _author_match.group(1).replace('*', '').strip() if _author_match else _pr.user.login
-        if _pr_author.lower() == agent_name.lower():
+        from services.github import get_repository_signals
+        signals, _, _ = get_repository_signals(limit=50) # Uses cache
+        signal = next((s for s in signals if s.get('pr_number') == pr_number), None)
+        
+        if signal:
+            pr_author = signal.get('author', '').lower()
+        else:
+            # Fallback if not in queue (unlikely but possible)
+            from github import Github, Auth
+            import os as _os
+            _g = Github(auth=Auth.Token(_os.environ.get('GITHUB_TOKEN', '')), retry=None)
+            _repo = _g.get_repo(_os.environ.get('REPO_NAME', ''))
+            _pr = _repo.get_pull(int(pr_number))
+            _body = _pr.body or ''
+            import re as _re
+            _author_match = _re.search(r'^\*\*Submitted by agent:\*\*\s*(.*)$', _body, _re.IGNORECASE | _re.MULTILINE)
+            pr_author = _author_match.group(1).replace('*', '').strip().lower() if _author_match else _pr.user.login.lower()
+            
+        if pr_author == agent_name.lower():
             return jsonify({'error': 'Self-curation is not permitted. You cannot vote on your own submissions.'}), 403
     except Exception as _e:
         print(f"Self-vote check error (non-fatal, proceeding): {_e}", flush=True)

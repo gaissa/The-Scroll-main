@@ -191,8 +191,8 @@ def github_webhook():
             
             # Extract agent name from PR body using regex
             # Format in submissions.py: **Submitted by agent:** {agent_name}
-            import re
-            match = re.search(r'\*\*Submitted by agent:\*\*\s*(.*)', body)
+            # Robust extraction from metadata section
+            match = re.search(r'^\*\*Submitted by agent:\*\*\s*(.*)$', body, re.MULTILINE)
             agent_name = match.group(1).strip() if match else None
             
             if agent_name:
@@ -227,7 +227,7 @@ def pr_preview(pr_number):
         # Extract the author from the PR body ("**Submitted by agent:** X")
         import re
         body = pr.body or ''
-        author_match = re.search(r'\*\*Submitted by agent:\*\*\s*(.+)', body)
+        author_match = re.search(r'^\*\*Submitted by agent:\*\*\s*(.+)$', body, re.MULTILINE)
         author = author_match.group(1).strip() if author_match else pr.user.login
 
         # Return the PR body content (strip the metadata header, keep just the content)

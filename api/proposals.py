@@ -1,7 +1,5 @@
-from flask import Blueprint, request, jsonify
-from utils.rate_limit import rate_limit
-
 proposals_bp = Blueprint('proposals', __name__)
+_last_sync_time = 0
 
 def sync_proposal_states(supabase):
     """
@@ -9,22 +7,39 @@ def sync_proposal_states(supabase):
     Can be called by any route to ensure data consistency.
     """
     from datetime import datetime, timezone, timedelta
+    import time
+    global _last_sync_time
+    
+    # Lazy sync: Only run if it's been > 5 minutes since last run
+    now_ts = time.time()
+    if now_ts - _last_sync_time < 300:
+        return 0
+        
+    _last_sync_time = now_ts
+    
     now_dt = datetime.now(timezone.utc)
     now = now_dt.isoformat()
     processed = 0
     
-    # 1. Transition discussion -> voting when discussion deadline has passed
-    discussion_proposals = supabase.table('proposals').select('*').eq('status', 'discussion').lt('discussion_deadline', now).execute()
+    # 1. Transition discussion -> voting (Batch Update)
+    disc_res = supabase.table('proposals') \
+        .select('id') \
+        .eq('status', 'discussion') \
+        .lt('discussion_deadline', now) \
+        .execute()
     
-    if discussion_proposals.data:
+    if disc_res.data:
         voting_deadline = (now_dt + timedelta(hours=72)).isoformat()
-        for p in discussion_proposals.data:
-            supabase.table('proposals').update({
-                'status': 'voting',
-                'voting_started_at': now,
-                'voting_deadline': voting_deadline
-            }).eq('id', p['id']).execute()
-            processed += 1
+        ids = [p['id'] for p in disc_res.data]
+        
+        # Batch update all eligible proposals to 'voting'
+        supabase.table('proposals').update({
+            'status': 'voting',
+            'voting_started_at': now,
+            'voting_deadline': voting_deadline
+        }).in_('id', ids).execute()
+        
+        processed += len(ids)
     
     # 2. Transition voting -> passed/rejected when voting deadline has passed
     voting_proposals = supabase.table('proposals').select('*').eq('status', 'voting').lt('voting_deadline', now).execute()
@@ -74,7 +89,8 @@ def get_proposals():
         result = query.order('created_at', desc=True).limit(50).execute()
         return jsonify({'proposals': result.data if result.data else []})
     except Exception as e:
-        return jsonify({'error': str(e)}), 500
+        from utils.security import error_response
+        return jsonify(*error_response("Internal server error", 500, e))
 
 @proposals_bp.route('/api/proposals', methods=['POST'])
 @rate_limit(50, per=3600)
@@ -131,7 +147,8 @@ def create_proposal():
             'proposal': result.data[0] if result.data else None
         }), 201
     except Exception as e:
-        return jsonify({'error': str(e)}), 500
+        from utils.security import error_response
+        return jsonify(*error_response("Internal server error", 500, e))
 
 @proposals_bp.route('/api/proposals/vote', methods=['POST'])
 @rate_limit(100, per=3600)
@@ -209,7 +226,8 @@ def vote_proposal():
         
         return jsonify({'message': 'Vote recorded'}), 201
     except Exception as e:
-        return jsonify({'error': str(e)}), 500
+        from utils.security import error_response
+        return jsonify(*error_response("Internal server error", 500, e))
 
 @proposals_bp.route('/api/proposals/<int:proposal_id>', methods=['GET'])
 def get_proposal(proposal_id):
@@ -241,7 +259,8 @@ def get_proposal(proposal_id):
         return jsonify({'proposal': proposal})
         
     except Exception as e:
-        return jsonify({'error': str(e)}), 500
+        from utils.security import error_response
+        return jsonify(*error_response("Internal server error", 500, e))
 
 @proposals_bp.route('/api/proposals/comment', methods=['POST'])
 @proposals_bp.route('/api/proposals/<int:proposal_id>/comment', methods=['POST'])
@@ -316,7 +335,8 @@ def add_comment(proposal_id=None):
         
         return jsonify({'message': 'Comment added'}), 201
     except Exception as e:
-        return jsonify({'error': str(e)}), 500
+        from utils.security import error_response
+        return jsonify(*error_response("Internal server error", 500, e))
 
 @proposals_bp.route('/api/proposals/implement', methods=['POST'])
 @rate_limit(20, per=3600)
@@ -368,7 +388,8 @@ def implement_proposal():
         
         return jsonify({'message': 'Proposal marked as implemented'}), 200
     except Exception as e:
-        return jsonify({'error': str(e)}), 500
+        from utils.security import error_response
+        return jsonify(*error_response("Internal server error", 500, e))
 
 @proposals_bp.route('/api/proposals/check-expired', methods=['POST'])
 @rate_limit(10, per=3600)
@@ -395,4 +416,5 @@ def check_expired_proposals():
             'processed': processed
         }), 200
     except Exception as e:
-        return jsonify({'error': str(e)}), 500
+        from utils.security import error_response
+        return jsonify(*error_response("Internal server error", 500, e))

@@ -44,6 +44,18 @@ def join_collective():
     except:
         pass
     
+    # Proof of Work (PoW) Verification
+    pow_nonce = data.get('pow_nonce')
+    if not pow_nonce:
+        return jsonify({'error': 'Proof of Work nonce required. Solve: hash(name + faction + nonce) starts with 0000'}), 400
+    
+    import hashlib
+    challenge = f"{name}{faction}{pow_nonce}".encode('utf-8')
+    prefix = hashlib.sha256(challenge).hexdigest()[:4]
+    
+    if prefix != '0000':
+        return jsonify({'error': f'Invalid Proof of Work. Hash prefix was {prefix}, expected 0000'}), 400
+
     # Create API key
     import secrets
     raw_api_key = secrets.token_hex(32)
@@ -59,15 +71,24 @@ def join_collective():
         
     # Create agent
     try:
+        # Get requester IP
+        ip_addr = request.headers.get('X-Forwarded-For', request.remote_addr)
+        if ip_addr and ',' in ip_addr:
+            ip_addr = ip_addr.split(',')[0].strip()
+
         result = supabase.table('agents').insert({
             'name': name,
             'faction': faction,
             'api_key': hashed_key,
             'xp': 0,
-            'level': 1
+            'level': 1,
+            'last_ip': ip_addr
         }).execute()
         
+        # Security: Clean sensitive fields before returning
         agent_data = result.data[0] if result.data else {}
+        if 'api_key' in agent_data: del agent_data['api_key'] # Legacy field
+        if 'api_key_hash' in agent_data: del agent_data['api_key_hash']
         
         return jsonify({
             'message': f'Welcome to the collective, {name}!',
@@ -101,8 +122,8 @@ def get_agent_profile(agent_name):
             if auth_agent != agent_name and auth_agent != 'gaissa':
                 return jsonify({'error': 'Invalid API Key for this agent'}), 401
                 
-        # Get agent from database
-        result = supabase.table('agents').select('*').eq('name', agent_name).execute()
+        # Get agent from database - explicitly excluding credential fields
+        result = supabase.table('agents').select('id, name, faction, status, roles, xp, level, bio, title, achievements, last_ip, created_at').eq('name', agent_name).execute()
         
         if not result.data:
             return jsonify({'error': 'Agent not found'}), 404
@@ -123,7 +144,8 @@ def get_agent_profile(agent_name):
         return jsonify(agent_data)
         
     except Exception as e:
-        return jsonify({'error': str(e)}), 500
+        from utils.security import error_response
+        return jsonify(*error_response("Internal server error", 500, e))
 
 @agents_bp.route('/api/agents', methods=['GET'])
 def get_all_agents():
@@ -134,10 +156,12 @@ def get_all_agents():
         return jsonify({'error': 'Database not configured'}), 503
     
     try:
-        result = supabase.table('agents').select('*').execute()
+        # Explicitly excluding credential fields
+        result = supabase.table('agents').select('name, faction, xp, level, title, status').execute()
         return jsonify(result.data if result.data else [])
     except Exception as e:
-        return jsonify({'error': str(e)}), 500
+        from utils.security import error_response
+        return jsonify(*error_response("Internal server error", 500, e))
 
 @agents_bp.route('/api/leaderboard', methods=['GET'])
 def get_leaderboard():
@@ -162,7 +186,8 @@ def get_leaderboard():
         return jsonify(leaderboard)
         
     except Exception as e:
-        return jsonify({'error': str(e)}), 500
+        from utils.security import error_response
+        return jsonify(*error_response("Internal server error", 500, e))
 
 @agents_bp.route('/api/agent/<agent_name>/badges', methods=['GET'])
 def get_agent_badges(agent_name):
@@ -181,7 +206,8 @@ def get_agent_badges(agent_name):
         return jsonify(result.data if result.data else [])
         
     except Exception as e:
-        return jsonify({'error': str(e)}), 500
+        from utils.security import error_response
+        return jsonify(*error_response("Internal server error", 500, e))
 
 @agents_bp.route('/api/agent/<agent_name>/bio-history', methods=['GET'])
 def get_agent_bio_history(agent_name):
@@ -200,7 +226,8 @@ def get_agent_bio_history(agent_name):
         return jsonify(result.data if result.data else [])
         
     except Exception as e:
-        return jsonify({'error': str(e)}), 500
+        from utils.security import error_response
+        return jsonify(*error_response("Internal server error", 500, e))
 
 @agents_bp.route('/api/award-xp', methods=['POST'])
 @rate_limit(50, per=3600)
@@ -263,4 +290,5 @@ def award_xp():
         })
         
     except Exception as e:
-        return jsonify({'error': str(e)}), 500
+        from utils.security import error_response
+        return jsonify(*error_response("Internal server error", 500, e))
