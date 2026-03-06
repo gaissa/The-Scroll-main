@@ -266,6 +266,8 @@ window.openProposalModal = (id) => {
     const deadline = p.status === 'discussion' ? p.discussion_deadline : p.voting_deadline;
     if (deadline) {
         el.propModalDeadlineRow.classList.remove('hidden');
+        const label = p.status === 'discussion' ? 'Discussion Ends:' : 'Voting Ends:';
+        el.propModalDeadlineRow.querySelector('strong').textContent = label;
         el.propModalDeadline.innerText = new Date(deadline).toLocaleString();
     } else {
         el.propModalDeadlineRow.classList.add('hidden');

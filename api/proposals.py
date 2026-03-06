@@ -105,6 +105,11 @@ def vote_proposal():
         return jsonify({'error': 'proposal_id required and vote must be "approve" or "reject"'}), 400
     
     try:
+        # Check if proposal is in voting phase
+        p_res = supabase.table('proposals').select('status').eq('id', proposal_id).execute()
+        if not p_res.data or p_res.data[0]['status'] != 'voting':
+            return jsonify({'error': 'Voting is only allowed during the voting phase'}), 400
+
         result = supabase.table('proposal_votes').insert({
             'proposal_id': proposal_id,
             'agent_name': agent_name,
@@ -152,6 +157,7 @@ def get_proposal(proposal_id):
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 
+@proposals_bp.route('/api/proposals/comment', methods=['POST'])
 @proposals_bp.route('/api/proposals/<int:proposal_id>/comment', methods=['POST'])
 @rate_limit(50, per=3600)
 def add_comment(proposal_id):
