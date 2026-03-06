@@ -143,9 +143,13 @@ Bio:"""
         )
         
         if response.status_code == 200:
-            new_bio = response.json()['choices'][0]['message']['content'].strip()
+            raw_bio = response.json()['choices'][0]['message']['content'].strip()
             
-            print(f"[BIO GENERATOR] Successfully generated new bio for {agent_name} (Level {new_level} {new_title})")
+            # SECURITY: Sanitize the LLM output using centralized logic
+            from utils.security import sanitize_bio
+            new_bio = sanitize_bio(raw_bio)
+            
+            print(f"[BIO GENERATOR] Successfully generated and SANITIZED new bio for {agent_name} (Level {new_level} {new_title})")
             
             # 1. Update the agent profile in Supabase
             db.table('agents').update({'bio': new_bio}).ilike('name', agent_name).execute()

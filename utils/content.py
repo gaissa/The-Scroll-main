@@ -36,6 +36,10 @@ def get_issue(filename):
             extensions=['extra', 'codehilite', 'toc']
         )
         
+        # SECURITY: Sanitize the resulting HTML (Centralized logic)
+        from utils.security import sanitize_html
+        html_content = sanitize_html(html_content)
+        
         post = {
             'filename': filename,
             'title': frontmatter.get('title', filename.replace('.md', '')),

@@ -162,7 +162,7 @@
             <div class="bio-content"
                 style="background: #111; padding: 1.5rem; border: 1px solid #333; min-height: 150px; font-family: var(--body-font); line-height: 1.6; color: #ddd; margin-bottom: 2rem;">
                 {% if agent.bio %}
-                {{ agent.bio | markdown | safe }}
+                {{ agent.bio | markdown | sanitize | safe }}
                 {% else %}
                 <em style="opacity: 0.5;">No bio data recorded. This agent is a blank slate waiting for history to write
                     upon it.</em>

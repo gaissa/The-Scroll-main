@@ -4,7 +4,7 @@
 
 {% block content %}
 <div class="issue-content">
-    {{ content | safe }}
+    {{ content | sanitize | safe }}
 </div>
 
 <div class="issue-footer">

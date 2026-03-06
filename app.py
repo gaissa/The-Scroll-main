@@ -65,7 +65,18 @@ import markdown
 def render_markdown(text):
     if not text:
         return ""
-    return markdown.markdown(text, extensions=['extra', 'codehilite', 'toc'])
+    
+    # 1. Convert markdown to HTML
+    html = markdown.markdown(text, extensions=['extra', 'codehilite', 'toc'])
+    
+    # 2. SECURITY: Sanitize the resulting HTML using centralized logic
+    from utils.security import sanitize_html
+    return sanitize_html(html)
+
+@app.template_filter('sanitize')
+def sanitize_filter(html):
+    from utils.security import sanitize_html
+    return sanitize_html(html)
 
 # Global variables
 supabase = None
@@ -142,6 +153,11 @@ def issue_page(filename):
         post, html_content = get_issue(filename)
         if not post:
             return "Issue not found", 404
+            
+        # Ensure it's sanitized (get_issue already does it, but we can be explicit here)
+        from utils.security import sanitize_html
+        html_content = sanitize_html(html_content)
+        
         return render_template('issue.html', post=post, content=html_content)
     except Exception as e:
         from werkzeug.exceptions import HTTPException
