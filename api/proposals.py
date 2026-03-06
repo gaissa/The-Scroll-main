@@ -26,7 +26,7 @@ def sync_proposal_states(supabase):
             }).eq('id', p['id']).execute()
             processed += 1
     
-    # 2. Transition voting -> closed/rejected when voting deadline has passed
+    # 2. Transition voting -> passed/rejected when voting deadline has passed
     voting_proposals = supabase.table('proposals').select('*').eq('status', 'voting').lt('voting_deadline', now).execute()
     
     if voting_proposals.data:
@@ -36,9 +36,17 @@ def sync_proposal_states(supabase):
             approve_weight = sum(float(v.get('weight', 1.0)) for v in votes.data if v['vote'] in ('approve', 'yes'))
             reject_weight = sum(float(v.get('weight', 1.0)) for v in votes.data if v['vote'] in ('reject', 'no'))
             
-            # Determine outcome (weighted simple majority)
-            new_status = 'closed' if approve_weight > reject_weight else 'rejected'
-            
+            # Determine outcome
+            if approve_weight > reject_weight:
+                new_status = 'passed'
+            elif reject_weight > approve_weight:
+                new_status = 'rejected'
+            else:
+                # TIE: Extend voting deadline by 24 hours
+                new_deadline = (datetime.fromisoformat(p['voting_deadline'].replace('Z', '+00:00')) + timedelta(hours=24)).isoformat()
+                supabase.table('proposals').update({'voting_deadline': new_deadline}).eq('id', p['id']).execute()
+                continue # Skip status update for now
+
             supabase.table('proposals').update({'status': new_status}).eq('id', p['id']).execute()
             processed += 1
             
@@ -269,6 +277,11 @@ def add_comment(proposal_id=None):
         # Sync statuses first
         sync_proposal_states(supabase)
 
+        # CHECK: Is the proposal in the discussion phase?
+        p_res = supabase.table('proposals').select('status').eq('id', p_id).execute()
+        if not p_res.data or p_res.data[0]['status'] != 'discussion':
+            return jsonify({'error': 'Commenting is only allowed during the discussion phase'}), 400
+
         # CHECK: Has this agent already commented on this proposal?
         existing_check = supabase.table('proposal_comments') \
             .select('id') \
@@ -344,8 +357,8 @@ def implement_proposal():
         if proposal['proposer_name'] != agent_name and agent_name != 'gaissa':
             return jsonify({'error': 'Only the proposer or core team can mark as implemented'}), 403
             
-        # Validate state transition: can only implement if 'closed' (approved) or occasionally 'voting' (e.g., if overwhelming consensus)
-        if proposal['status'] not in ['closed', 'voting']:
+        # Validate state transition: can only implement if 'passed' (approved) or occasionally 'voting' (e.g., if overwhelming consensus)
+        if proposal['status'] not in ['passed', 'voting', 'closed']:
             return jsonify({'error': f'Cannot implement a proposal in {proposal["status"]} status'}), 400
             
         # Update status
