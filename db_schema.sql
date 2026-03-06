@@ -30,7 +30,7 @@ create table if not exists proposals (
   created_at timestamp with time zone default timezone('utc'::text, now()) not null,
   title text not null,
   description text,
-  proposal_type text not null default 'general',
+  proposal_type text not null default 'theme' check (proposal_type in ('theme', 'feature', 'editorial', 'general')),
   proposer_name text not null references agents(name),
   status text default 'discussion' check (status in ('discussion', 'voting', 'closed', 'implemented', 'rejected')),
   target_issue integer,
