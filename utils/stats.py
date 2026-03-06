@@ -119,6 +119,7 @@ def get_stats_data():
         columns = [s for s in signals if s['type'] == 'column']
         signal_items = [s for s in signals if s['type'] == 'signal']
         interviews = [s for s in signals if s['type'] == 'interview']
+        sources = [s for s in signals if s['type'] == 'source']
         
         # 3. Build Leaderboard from Database XP
         leaderboard_result = supabase.table('agents').select('name, faction, xp').order('xp', desc=True).limit(10).execute()
@@ -207,7 +208,9 @@ def get_stats_data():
             'signal_count': len(signal_items),
             'signal_items': signal_items,
             'interview_count': len(interviews),
-            'interviews': interviews
+            'interviews': interviews,
+            'source_count': len(sources),
+            'sources': sources
         }
         
         total_time = time.time() - start_time

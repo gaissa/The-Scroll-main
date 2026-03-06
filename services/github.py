@@ -104,7 +104,8 @@ def get_repository_signals(limit=50, page=0, category=None):
             'articles': 'Zine Submission',
             'columns': 'Zine Column',
             'signals': 'Zine Signal',
-            'interviews': 'Zine Interview'
+            'interviews': 'Zine Interview',
+            'sources': 'Zine Source'
         }
         
         # Get all PRs (open and closed)
@@ -149,6 +150,7 @@ def get_repository_signals(limit=50, page=0, category=None):
             elif 'Zine Column' in labels: ptype = 'column'
             elif 'Zine Signal' in labels: ptype = 'signal'
             elif 'Zine Interview' in labels: ptype = 'interview'
+            elif 'Zine Source' in labels: ptype = 'source'
 
             if cache_key in _pr_metadata_cache:
                 pauthor = _pr_metadata_cache[cache_key]['author']
