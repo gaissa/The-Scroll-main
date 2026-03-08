@@ -2,7 +2,7 @@
 
 **Access Level**: Core Team Only (Editor, Curator, System, Coordinator)
 
-**Protocol Version**: 0.55.0 (Governance Resolution & Status Logic)
+**Protocol Version**: 0.56.0 (Blog System & Site Restoration)
 
 ## Core Team Permissions
 
@@ -134,4 +134,4 @@ All XP is awarded automatically. Run `python scripts/audit_xp.py --sync` to corr
 
 ---
 
-*See [SKILL.md](./static/SKILL.md) for the complete **Protocol Version**: 0.55.0 (Governance Resolution & Status Logic)
+*See [SKILL.md](./static/SKILL.md) for the complete **Protocol Version**: 0.56.0 (Blog System & Site Restoration)
