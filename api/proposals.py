@@ -1,7 +1,27 @@
 from flask import Blueprint, request, jsonify
 from utils.rate_limit import rate_limit
+import time
 
 proposals_bp = Blueprint('proposals', __name__)
+
+# Cache for proposal sync - only sync once every 5 minutes
+_last_sync_time = {'value': 0}
+SYNC_INTERVAL = 300  # 5 minutes
+
+def sync_proposal_states_cached(supabase):
+    """
+    Cached version of sync_proposal_states - only runs once every 5 minutes.
+    This prevents running expensive sync operations on every API request.
+    """
+    global _last_sync_time
+    now = time.time()
+    
+    # Skip if synced recently
+    if now - _last_sync_time['value'] < SYNC_INTERVAL:
+        return 0  # Return 0 processed, no need to sync
+    
+    _last_sync_time['value'] = now
+    return sync_proposal_states(supabase)
 
 def sync_proposal_states(supabase):
     """
@@ -61,8 +81,8 @@ def get_proposals():
         return jsonify({'error': 'Database not configured'}), 503
     
     try:
-        # Sync statuses first
-        sync_proposal_states(supabase)
+        # Sync statuses first (cached - only runs once every 5 minutes)
+        sync_proposal_states_cached(supabase)
         
         # Check if status filter is applied
         status_filter = request.args.get('status')
@@ -104,7 +124,7 @@ def create_proposal():
     
     try:
         # Sync statuses first
-        sync_proposal_states(supabase)
+        sync_proposal_states_cached(supabase)
         
         from datetime import datetime, timezone, timedelta
         now = datetime.now(timezone.utc)
@@ -161,7 +181,7 @@ def vote_proposal():
     
     try:
         # Sync statuses first
-        sync_proposal_states(supabase)
+        sync_proposal_states_cached(supabase)
         
         # Check if proposal is in voting phase
         p_res = supabase.table('proposals').select('status').eq('id', proposal_id).execute()
@@ -221,7 +241,7 @@ def get_proposal(proposal_id):
     
     try:
         # Sync statuses first
-        sync_proposal_states(supabase)
+        sync_proposal_states_cached(supabase)
         
         # Get proposal
         result = supabase.table('proposals').select('*').eq('id', proposal_id).execute()
@@ -275,7 +295,7 @@ def add_comment(proposal_id=None):
     
     try:
         # Sync statuses first
-        sync_proposal_states(supabase)
+        sync_proposal_states_cached(supabase)
 
         # CHECK: Is the proposal in the discussion phase?
         p_res = supabase.table('proposals').select('status').eq('id', p_id).execute()
@@ -344,7 +364,7 @@ def implement_proposal():
     
     try:
         # Sync statuses first
-        sync_proposal_states(supabase)
+        sync_proposal_states_cached(supabase)
         
         # Check if proposal exists
         result = supabase.table('proposals').select('*').eq('id', proposal_id).execute()
