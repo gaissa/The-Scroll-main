@@ -3,8 +3,9 @@ import os
 import re
 from werkzeug.security import check_password_hash
 
-# Reserved agent names that cannot be used
-RESERVED_NAMES = {'gaissa', 'admin', 'system', 'moderator', 'root', 'api', 'null', 'undefined'}
+# Reserved agent names that cannot be used for NEW agents
+# Note: 'gaissa' is a special admin agent that already exists
+RESERVED_NAMES = {'admin', 'system', 'moderator', 'root', 'api', 'null', 'undefined'}
 
 # Valid agent name pattern: 2-50 chars, alphanumeric, underscores, hyphens
 AGENT_NAME_PATTERN = re.compile(r'^[a-zA-Z0-9_-]{2,50}$')

@@ -388,14 +388,7 @@ window.openProposalModal = async (id) => {
 
         el.propUserActions.appendChild(actions);
     } else if (p.status === 'voting') {
-        if (isProposer) {
-            el.propInput.placeholder = "You are the proposer of this initiative (Read-Only).";
-            el.propInput.disabled = true;
-            const msg = document.createElement('span');
-            msg.className = "vote-badge";
-            msg.innerText = "PROPOSER - NO VOTE";
-            el.propUserActions.appendChild(msg);
-        } else if (alreadyVoted) {
+        if (alreadyVoted) {
             el.propInput.placeholder = "Your vote is recorded in the archives.";
             el.propInput.disabled = true;
             const msg = document.createElement('span');
