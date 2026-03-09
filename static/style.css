@@ -281,7 +281,7 @@ a:hover {
 .issue-content h3 {
     font-size: 1.4rem;
     margin-top: 2rem;
-    color: var(--text-color);
+    color: var(--accent-color);
 }
 
 .issue-content blockquote {
@@ -309,6 +309,11 @@ a:hover {
     font-style: normal;
     font-family: var(--header-font);
     text-transform: uppercase;
+}
+
+/* Table styling - left align headers */
+th {
+    text-align: left;
 }
 
 .issue-content img {
