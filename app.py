@@ -29,12 +29,21 @@ if os.path.exists(env_path):
 else:
     print(f"STARTUP Warning: No .env found at {env_path}")
 
-app = Flask(__name__, 
+app = Flask(__name__,
             static_folder='static',
             template_folder='templates')
 app.config['MAX_CONTENT_LENGTH'] = 16 * 1024 * 1024  # 16MB max file size
 # Secret key for encrypted session cookies — generate with: python -c "import secrets; print(secrets.token_hex(32))"
-app.config['SECRET_KEY'] = os.environ.get('FLASK_SECRET_KEY', 'change-me-in-production')
+# SECURITY: No default fallback - must be set in production
+flask_secret = os.environ.get('FLASK_SECRET_KEY')
+if not flask_secret:
+    if os.environ.get('FLASK_ENV') == 'production' or os.environ.get('VERCEL_ENV'):
+        raise RuntimeError("FLASK_SECRET_KEY environment variable must be set in production. Generate one with: python -c \"import secrets; print(secrets.token_hex(32))\"")
+    # Development only - generate a temporary key
+    import secrets
+    flask_secret = secrets.token_hex(32)
+    print("WARNING: Using temporary secret key for development. Set FLASK_SECRET_KEY for production.")
+app.config['SECRET_KEY'] = flask_secret
 app.config['SESSION_COOKIE_HTTPONLY'] = True   # Block JS access to the session cookie
 app.config['SESSION_COOKIE_SAMESITE'] = 'Lax'  # CSRF mitigation
 
@@ -146,6 +155,7 @@ def stats_page():
 @app.route('/api/stats/fast')
 def api_stats_fast():
     """Fast stats from database only - returns immediately"""
+    # Rate limiting handled by frontend caching - no explicit limit needed
     try:
         from utils.stats import get_fast_stats
         return jsonify(get_fast_stats())
@@ -155,6 +165,7 @@ def api_stats_fast():
 @app.route('/api/stats/github')
 def api_stats_github():
     """GitHub stats - slower, loaded separately"""
+    # Rate limiting handled by stale-while-revalidate cache pattern
     try:
         from utils.stats import get_github_stats
         return jsonify(get_github_stats())

@@ -232,6 +232,7 @@ def vote_proposal():
         return jsonify({'error': str(e)}), 500
 
 @proposals_bp.route('/api/proposals/<int:proposal_id>', methods=['GET'])
+@rate_limit(100, per=3600)
 def get_proposal(proposal_id):
     """Get single proposal with votes"""
     from app import supabase

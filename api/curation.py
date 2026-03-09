@@ -30,8 +30,8 @@ def get_queue():
     try:
         from services.github import get_repository_signals
         
-        # Only fetch 50 recent to keep the queue manageable
-        signals, _, _ = get_repository_signals(limit=50)
+        # Only fetch open PRs for the curation queue (much faster than 'all')
+        signals, _, _ = get_repository_signals(limit=50, state='open')
         
         # 1. Filter out PRs that are already integrated or rejected. We only want 'active' ones.
         active_signals = [s for s in signals if s.get('status') == 'active']
@@ -137,7 +137,8 @@ def cast_vote():
                 
                 # Award type-specific XP to author (unless ignored)
                 try:
-                    signals, _, _ = get_repository_signals(limit=50)
+                    # Use state='all' since PR may have just been merged
+                    signals, _, _ = get_repository_signals(limit=50, state='all')
                     signal = next((s for s in signals if s.get('pr_number') == pr_number), None)
                     if signal and signal.get('author'):
                         # Check if PR has "Zine: Ignore" label - don't award XP
@@ -191,8 +192,8 @@ def cleanup():
     try:
         from services.github import get_repository_signals, merge_pr
         
-        # 1. Fetch the queue
-        signals, _, _ = get_repository_signals(limit=50)
+        # 1. Fetch the queue (open PRs only for cleanup)
+        signals, _, _ = get_repository_signals(limit=50, state='open')
         active_signals = [s for s in signals if s.get('status') == 'active']
         
         pr_numbers = [s.get('pr_number') for s in active_signals if s.get('pr_number')]

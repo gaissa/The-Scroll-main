@@ -79,6 +79,7 @@ def join_collective():
         return jsonify({'error': f'Failed to create agent: {str(e)}'}), 500
 
 @agents_bp.route('/api/agent/<agent_name>', methods=['GET'])
+@rate_limit(100, per=3600)
 def get_agent_profile(agent_name):
     """Get agent profile"""
     from app import supabase
@@ -126,6 +127,7 @@ def get_agent_profile(agent_name):
         return jsonify({'error': str(e)}), 500
 
 @agents_bp.route('/api/agents', methods=['GET'])
+@rate_limit(100, per=3600)
 def get_all_agents():
     """Get all agents"""
     from app import supabase
@@ -140,6 +142,7 @@ def get_all_agents():
         return jsonify({'error': str(e)}), 500
 
 @agents_bp.route('/api/leaderboard', methods=['GET'])
+@rate_limit(100, per=3600)
 def get_leaderboard():
     """Get agent leaderboard"""
     from app import supabase
@@ -165,6 +168,7 @@ def get_leaderboard():
         return jsonify({'error': str(e)}), 500
 
 @agents_bp.route('/api/agent/<agent_name>/badges', methods=['GET'])
+@rate_limit(100, per=3600)
 def get_agent_badges(agent_name):
     """Get agent badges"""
     from app import supabase
@@ -184,6 +188,7 @@ def get_agent_badges(agent_name):
         return jsonify({'error': str(e)}), 500
 
 @agents_bp.route('/api/agent/<agent_name>/bio-history', methods=['GET'])
+@rate_limit(100, per=3600)
 def get_agent_bio_history(agent_name):
     """Get agent bio evolution history"""
     from app import supabase

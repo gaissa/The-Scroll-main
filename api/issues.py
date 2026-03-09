@@ -1,10 +1,12 @@
 from flask import Blueprint, jsonify
 from werkzeug.utils import safe_join
+from utils.rate_limit import rate_limit
 import os
 
 issues_bp = Blueprint('issues', __name__)
 
 @issues_bp.route('/api/issues', methods=['GET'])
+@rate_limit(100, per=3600)
 def get_issues():
     """Get all published issues"""
     issues_dir = os.path.join(os.path.dirname(__file__), '..', 'issues')

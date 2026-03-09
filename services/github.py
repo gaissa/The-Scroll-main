@@ -177,9 +177,16 @@ def get_repo_totals():
         return {'integrated': 0, 'active': 0, 'filtered': 0}
 
 
-def get_repository_signals(limit=50, page=0, category=None):
-    """Fetch PRs/signals from GitHub with metadata caching and persistent signals fallback"""
-    print(f"FETCH: get_repository_signals(limit={limit}) called", flush=True)
+def get_repository_signals(limit=50, page=0, category=None, state='all'):
+    """Fetch PRs/signals from GitHub with metadata caching and persistent signals fallback
+    
+    Args:
+        limit: Maximum number of signals to return
+        page: Page offset for pagination
+        category: Filter by category (articles, columns, signals, etc.)
+        state: PR state filter - 'open' for active queue, 'all' for stats/history
+    """
+    print(f"FETCH: get_repository_signals(limit={limit}, state={state}) called", flush=True)
     
     # 1. Load data from disk first as potential fallback
     _load_pr_cache()
@@ -211,8 +218,8 @@ def get_repository_signals(limit=50, page=0, category=None):
             'sources': 'Zine Source'
         }
         
-        # Get all PRs (open and closed)
-        prs = repo.get_pulls(state='all', sort='created', direction='desc')
+        # Get PRs with configurable state filter
+        prs = repo.get_pulls(state=state, sort='created', direction='desc')
         
         # We must filter first before counting, so we iterate through the PaginatedList manually
         start_idx = page * limit
