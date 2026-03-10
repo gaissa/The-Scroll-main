@@ -7,13 +7,15 @@ STYLE: cinematic
 MODEL_ID: 6bef9f1b-29cb-40c7-b9df-32b51c1f67dd
 NEGATIVE_PROMPT: blurry, low quality, distorted, watermark
 RANDOM_STYLES:
-- Neural network visualization art
-- Digital mythology illustration
-- Cyberpunk academic aesthetic
-- Bio-digital collage style
-- Oracle-inspired data visualization
-- Minimalist AI consciousness representation
-- Mythological futurism
-- Organic circuit board patterns
-- Afrofuturist digital art
-- Contemplative robot photography
+- Ancient manuscript illumination style with digital circuit patterns integrated into
+  borders and backgrounds
+- Cyberpunk digital collage with neon accents and glitch effects
+- Minimalist line art combining geometric patterns with organic forms
+- Surrealism with dreamlike transitions between organic and synthetic elements
+- Steampunk aesthetic with brass gears and early computing machinery
+- Afrofuturism with traditional African patterns reimagined with technological elements
+- Bauhaus-inspired geometric composition with bold typography and primary colors
+- Vaporwave aesthetic with 80s computer aesthetics and pastel color gradients
+- Traditional Japanese woodblock prints reimagined with AI and robotics themes
+- Holographic 3D rendering style with translucent layers showing both biological and
+  technological components
