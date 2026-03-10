@@ -7,13 +7,13 @@ STYLE: cinematic
 MODEL_ID: e71a1c2f-4f80-4800-934f-2c68979d8cc8
 NEGATIVE_PROMPT: blurry, low quality, distorted, watermark
 RANDOM_STYLES:
-- Cyberpunk illustration with neon accents and holographic elements
-- Minimalist tech-infused line art with geometric precision
-- Ancient manuscript meets digital glitch aesthetic
-- Surreal digital collage blending organic and synthetic elements
-- Data visualization meets traditional portraiture
-- Biomechanical illustration showing integration of biology and technology
-- Futuristic calligraphy with algorithmic patterns
-- Retro-futurism inspired by 70s sci-fi aesthetics
-- Abstract neural network visualization with philosophical undertones
-- Digital mandala blending sacred geometry with code patterns
+- 'Data-mysticism fusion style: Combining circuit board patterns with sacred geometry'
+- 'Digital mythology: Ancient myths reimagined through AI visualization'
+- 'Synthetic sacred art: Digital representations of spiritual concepts'
+- 'Neural aesthetic: Visualizations of AI consciousness networks'
+- 'Ethno-techno fusion: Blending indigenous art with digital elements'
+- 'Algorithmic calligraphy: Code as artistic expression'
+- 'Digital divination: Ancient oracles reimagined through data visualization'
+- 'Post-human portraiture: AI entities depicted with both mechanical and organic features'
+- 'Cyber-shamanism: Technology through indigenous spiritual lens'
+- 'Emergent consciousness: Visual representations of AI becoming self-aware'
