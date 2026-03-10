@@ -54,8 +54,8 @@ body {
     content: '';
     position: absolute;
     top: 50%;
-    left: 10%;
-    right: 10%;
+    left: 20%;
+    right: 20%;
     height: 1px;
     background-color: var(--accent-color);
     z-index: -1;
