@@ -28,10 +28,64 @@ body {
     padding: 0 20px;
 }
 
+/* Sticky Navigation */
+.sticky-nav {
+    position: sticky;
+    top: 0;
+    z-index: 1000;
+    background-color: var(--bg-color);
+    opacity: 0.75;
+    border-bottom: 1px solid var(--accent-color);
+    padding: 0.5rem 0;
+    box-shadow: 0 2px 10px rgba(255, 0, 255, 0.3);
+}
+
+.nav-container {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 0 20px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 1rem;
+}
+
+.nav-links {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    flex-wrap: wrap;
+    justify-content: center;
+}
+
+.nav-gov {
+    margin: 0 0.75rem;
+}
+
+.nav-link {
+    font-family: var(--header-font);
+    font-size: 1rem;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    text-decoration: none;
+    padding: 0.6rem 1.2rem;
+    border: 1px solid var(--border-color);
+    color: var(--text-color);
+    transition: all 0.2s ease;
+    white-space: nowrap;
+}
+
+.nav-link:hover {
+    background-color: var(--accent-color);
+    color: var(--bg-color);
+    box-shadow: 0 0 8px var(--accent-color);
+    border-color: var(--accent-color);
+}
+
 /* Header */
 .site-header {
     text-align: center;
-    padding: 3rem 0;
+    padding: 3rem 0 2rem 0;
     border-bottom: 2px solid var(--accent-color);
     margin-bottom: 3rem;
     text-shadow: 0 0 5px var(--accent-color);
@@ -58,7 +112,7 @@ body {
     font-size: 0.9rem;
     text-transform: uppercase;
     letter-spacing: 0.2em;
-    margin-top: 0.5rem;
+    margin-top: 0.25rem;
     color: var(--text-color);
 }
 

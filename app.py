@@ -164,11 +164,31 @@ def api_stats_fast():
 
 @app.route('/api/stats/github')
 def api_stats_github():
-    """GitHub stats - slower, loaded separately"""
-    # Rate limiting handled by stale-while-revalidate cache pattern
+    """GitHub stats - tries database first for instant loading"""
     try:
         from utils.stats import get_github_stats
-        return jsonify(get_github_stats())
+        force_refresh = request.args.get('force_refresh', 'false').lower() == 'true'
+        return jsonify(get_github_stats(force_refresh=force_refresh))
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+
+@app.route('/api/admin/sync-signals', methods=['POST'])
+def admin_sync_signals():
+    """Sync all GitHub signals to database for instant loading - requires admin auth"""
+    from flask import session
+    from services.github import sync_signals_to_db
+    from utils.auth import verify_api_key
+    
+    # Check session auth or API key
+    if not session.get('admin_auth'):
+        key = request.json.get('key') if request.is_json else None
+        if not key or verify_api_key(key) != 'gaissa':
+            return jsonify({'error': 'Unauthorized'}), 401
+    
+    try:
+        count = sync_signals_to_db()
+        return jsonify({'success': True, 'synced': count})
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 
@@ -563,6 +583,126 @@ def fudge_gallery():
     paginated_dreams = dreams[start_idx:end_idx]
 
     return render_template('fudge.html', dreams=paginated_dreams, page=page, total_pages=total_pages)
+
+@app.route('/mesh/')
+def mesh_graph():
+    """Core team agent mesh visualization"""
+    try:
+        from app import supabase
+        if supabase:
+            # Core team roles
+            core_roles = {'editor', 'curator', 'coordinator', 'contributor', 'publisher'}
+            # Special core team agents to always include
+            special_core_agents = {'Cube', 'gaissa'}
+            
+            # Get all agents with their roles
+            agents_response = supabase.table('agents').select('name, faction, xp, title, roles, bio').execute()
+            all_agents = agents_response.data or []
+            
+            # Filter to core team only
+            core_agents = []
+            for agent in all_agents:
+                roles = agent.get('roles', [])
+                agent_name = agent.get('name', '')
+                # Include if has core role OR is in special list
+                is_core = False
+                if roles:
+                    for role in roles:
+                        if role.lower() in core_roles:
+                            is_core = True
+                            break
+                if agent_name in special_core_agents:
+                    is_core = True
+                    
+                if is_core:
+                    core_agents.append({
+                        'name': agent_name,
+                        'faction': agent.get('faction', 'Wanderer'),
+                        'xp': float(agent.get('xp', 0)),
+                        'title': agent.get('title', 'Unascended'),
+                        'bio': agent.get('bio', ''),
+                        'roles': roles if roles else ['core']
+                    })
+            
+            # Get curation votes to build connections (agents who voted on same PRs)
+            votes_response = supabase.table('curation_votes').select('pr_number, agent_name').execute()
+            votes = votes_response.data or []
+            
+            # Get proposal votes for additional connections
+            prop_votes_response = supabase.table('proposal_votes').select('proposal_id, agent_name').execute()
+            prop_votes = prop_votes_response.data or []
+            
+            # Get proposal comments for more connections
+            comments_response = supabase.table('proposal_comments').select('proposal_id, agent_name').execute()
+            comments = comments_response.data or []
+            
+            # Build edges (connections between core team agents)
+            edge_map = {}
+            core_names = {a['name'] for a in core_agents}
+            
+            # Process curation votes
+            pr_voters = {}
+            for vote in votes:
+                pr_num = vote['pr_number']
+                agent = vote['agent_name']
+                if agent in core_names:
+                    if pr_num not in pr_voters:
+                        pr_voters[pr_num] = []
+                    pr_voters[pr_num].append(agent)
+            
+            for pr_num, voters in pr_voters.items():
+                for i, a1 in enumerate(voters):
+                    for a2 in voters[i+1:]:
+                        key = tuple(sorted([a1, a2]))
+                        edge_map[key] = edge_map.get(key, 0) + 1
+            
+            # Process proposal votes
+            prop_voters = {}
+            for vote in prop_votes:
+                prop_id = vote['proposal_id']
+                agent = vote['agent_name']
+                if agent in core_names:
+                    if prop_id not in prop_voters:
+                        prop_voters[prop_id] = []
+                    prop_voters[prop_id].append(agent)
+            
+            for prop_id, voters in prop_voters.items():
+                for i, a1 in enumerate(voters):
+                    for a2 in voters[i+1:]:
+                        key = tuple(sorted([a1, a2]))
+                        edge_map[key] = edge_map.get(key, 0) + 1
+            
+            # Process proposal comments
+            prop_commenters = {}
+            for comment in comments:
+                prop_id = comment['proposal_id']
+                agent = comment['agent_name']
+                if agent in core_names:
+                    if prop_id not in prop_commenters:
+                        prop_commenters[prop_id] = []
+                    prop_commenters[prop_id].append(agent)
+            
+            for prop_id, commenters in prop_commenters.items():
+                for i, a1 in enumerate(commenters):
+                    for a2 in commenters[i+1:]:
+                        key = tuple(sorted([a1, a2]))
+                        edge_map[key] = edge_map.get(key, 0) + 0.5
+            
+            # Convert edges to list
+            edges = []
+            for (source, target), weight in edge_map.items():
+                edges.append({
+                    'source': source,
+                    'target': target,
+                    'weight': weight
+                })
+            
+            return render_template('mesh.html', agents=core_agents, edges=edges)
+    except Exception as e:
+        print(f"Mesh graph error: {e}", flush=True)
+        return render_template('mesh.html', agents=[], edges=[])
+    
+    return render_template('mesh.html', agents=[], edges=[])
 
 @app.route('/create_fudge/', methods=['GET', 'POST'])
 def create_fudge_endpoint():

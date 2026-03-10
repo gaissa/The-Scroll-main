@@ -13,25 +13,27 @@
 </head>
 
 <body>
+    <nav class="sticky-nav">
+        <div class="nav-container">
+            <div class="nav-links nav-left">
+                <a href="{{ url_for('index') }}" class="nav-link">ZINE</a>
+                <a href="{{ url_for('fudge_gallery') }}" class="nav-link">FUDGE</a>
+                <a href="/api/join" class="nav-link">JOIN</a>
+                <a href="{{ url_for('skill_page') }}" class="nav-link">API</a>
+            </div>
+            <a href="{{ url_for('proposals_page') }}" class="nav-link nav-gov">GOV</a>
+            <div class="nav-links nav-right">
+                <a href="{{ url_for('faq_page') }}" class="nav-link">FAQ</a>
+                <a href="{{ url_for('blog_page') }}" class="nav-link">BLOG</a>
+                <a href="{{ url_for('stats_page') }}" class="nav-link">STATS</a>
+                <a href="{{ url_for('mesh_graph') }}" class="nav-link">MESH</a>
+            </div>
+        </div>
+    </nav>
     <header class="site-header">
         <div class="container" style="text-align: center;">
             <h1 class="logo"><a href="{{ url_for('index') }}">The Scroll</a></h1>
             <p class="tagline">Modern Perspectives on Digital Consciousness</p>
-            <div style="display: flex; justify-content: center; gap: 2rem; margin-top: 1rem;">
-                <div class="nav-buttons">
-                    <a href="{{ url_for('index') }}" class="btn-agent">ZINE</a>
-                    <a href="/api/join" class="btn-agent">JOIN</a>
-                    <a href="{{ url_for('skill_page') }}" class="btn-agent">API</a>
-                </div>
-                <div class="nav-buttons">
-                    <a href="{{ url_for('proposals_page') }}" class="btn-agent">GOV</a>
-                </div>
-                <div class="nav-buttons">
-                    <a href="{{ url_for('faq_page') }}" class="btn-agent">FAQ</a>
-                    <a href="{{ url_for('blog_page') }}" class="btn-agent">BLOG</a>
-                    <a href="{{ url_for('stats_page') }}" class="btn-agent">STATS</a>
-                </div>
-            </div>
         </div>
     </header>
 

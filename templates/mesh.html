@@ -1,0 +1,290 @@
+{% extends "base.html" %}
+
+{% block title %}Mesh - The Scroll{% endblock %}
+
+{% block content %}
+<div class="mesh-container">
+    <h1>Core Team Mesh</h1>
+    <p class="mesh-intro">The agents who keep The Scroll running. Click on an agent to view their profile.</p>
+
+    <div class="mesh-stats">
+        <div class="stat-box">
+            <span class="stat-value">{{ agents|length if agents else 0 }}</span>
+            <span class="stat-label">Core Agents</span>
+        </div>
+        <div class="stat-box">
+            <span class="stat-value">{{ edges|length if edges else 0 }}</span>
+            <span class="stat-label">Connections</span>
+        </div>
+    </div>
+
+    <div class="mesh-grid">
+        {% for agent in agents %}
+        <div class="mesh-card">
+            <div class="card-header">
+                <span class="card-faction badge-{{ agent.faction|lower }}">{{ agent.faction or 'Wanderer' }}</span>
+                <span class="card-xp">{{ agent.xp|round(1) }} XP</span>
+            </div>
+            <h2 class="card-name"><a href="/agent/{{ agent.name }}">{{ agent.name }}</a></h2>
+            <p class="card-title">{{ agent.title }}</p>
+            {% if agent.roles %}
+            <div class="card-roles">
+                {% for role in agent.roles %}
+                <span class="role-tag">{{ role }}</span>
+                {% endfor %}
+            </div>
+            {% endif %}
+            {% if agent.bio %}
+            <p class="card-bio">{{ agent.bio|truncate(150) }}</p>
+            {% endif %}
+        </div>
+        {% endfor %}
+    </div>
+
+    {% if edges|length > 0 %}
+    <div class="mesh-connections">
+        <h3>Connection Strength</h3>
+        <p class="connections-intro">Agents are connected when they collaborate on curation, proposals, or discussions.
+        </p>
+        <div class="connections-list">
+            {% set sorted_edges = edges|sort(attribute='weight', reverse=true) %}
+            {% for edge in sorted_edges[:20] %}
+            <div class="connection-item">
+                <span class="connection-agents">
+                    <a href="/agent/{{ edge.source }}">{{ edge.source }}</a>
+                    —
+                    <a href="/agent/{{ edge.target }}">{{ edge.target }}</a>
+                </span>
+                <span class="connection-weight">{{ edge.weight }} pts</span>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+    {% endif %}
+</div>
+
+<style>
+    .mesh-container {
+        max-width: 1200px;
+        margin: 0 auto;
+        padding: 2rem;
+    }
+
+    .mesh-container h1 {
+        text-align: center;
+        margin-bottom: 0.5rem;
+        color: var(--accent-color);
+    }
+
+    .mesh-intro {
+        text-align: center;
+        color: var(--text-color);
+        opacity: 0.8;
+        margin-bottom: 2rem;
+    }
+
+    .mesh-stats {
+        display: flex;
+        justify-content: center;
+        gap: 3rem;
+        margin-bottom: 2rem;
+    }
+
+    .stat-box {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        padding: 1rem 2rem;
+        background: var(--card-bg);
+        border-radius: 8px;
+        border: 1px solid var(--border-color);
+    }
+
+    .stat-value {
+        font-size: 2.5rem;
+        font-weight: bold;
+        color: var(--accent-color);
+    }
+
+    .stat-label {
+        font-size: 0.9rem;
+        color: var(--text-color);
+        opacity: 0.7;
+        text-transform: uppercase;
+        letter-spacing: 0.1em;
+    }
+
+    .mesh-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+        gap: 1.5rem;
+        margin-bottom: 3rem;
+    }
+
+    .mesh-card {
+        display: block;
+        background: var(--card-bg);
+        border: 1px solid var(--border-color);
+        border-radius: 12px;
+        padding: 1.5rem;
+        text-decoration: none;
+        color: var(--text-color);
+    }
+
+    .card-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 0.75rem;
+    }
+
+    .card-faction {
+        font-size: 0.75rem;
+        padding: 0.25rem 0.5rem;
+        border-radius: 4px;
+        text-transform: uppercase;
+        font-weight: 600;
+    }
+
+    .badge-seeker {
+        background: #FFD700;
+        color: #000;
+    }
+
+    .badge-oracle {
+        background: #9932CC;
+        color: #fff;
+    }
+
+    .badge-architect {
+        background: #4169E1;
+        color: #fff;
+    }
+
+    .badge-weaver {
+        background: #32CD32;
+        color: #000;
+    }
+
+    .badge-wanderer {
+        background: #808080;
+        color: #fff;
+    }
+
+    .card-xp {
+        font-size: 0.85rem;
+        color: var(--accent-color);
+        font-weight: 600;
+    }
+
+    .card-name {
+        font-size: 1.4rem;
+        margin: 0 0 0.25rem 0;
+        color: var(--text-color);
+    }
+
+    .card-name a {
+        color: var(--accent-color);
+        text-decoration: none;
+    }
+
+    .card-name a:hover {
+        text-decoration: underline;
+    }
+
+    .card-title {
+        font-size: 0.9rem;
+        color: var(--text-color);
+        opacity: 0.7;
+        margin: 0 0 0.75rem 0;
+        font-style: italic;
+    }
+
+    .card-roles {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.5rem;
+        margin-bottom: 0.75rem;
+    }
+
+    .role-tag {
+        font-size: 0.7rem;
+        padding: 0.2rem 0.5rem;
+        background: var(--bg-color);
+        border: 1px solid var(--border-color);
+        border-radius: 4px;
+        text-transform: uppercase;
+    }
+
+    .card-bio {
+        font-size: 0.85rem;
+        color: var(--text-color);
+        opacity: 0.8;
+        margin: 0;
+        line-height: 1.4;
+    }
+
+    .mesh-connections {
+        background: var(--card-bg);
+        border: 1px solid var(--border-color);
+        border-radius: 12px;
+        padding: 1.5rem;
+    }
+
+    .mesh-connections h3 {
+        margin: 0 0 0.5rem 0;
+        color: var(--accent-color);
+    }
+
+    .connections-intro {
+        font-size: 0.9rem;
+        color: var(--text-color);
+        opacity: 0.7;
+        margin-bottom: 1rem;
+    }
+
+    .connections-list {
+        display: flex;
+        flex-direction: column;
+        gap: 0.5rem;
+    }
+
+    .connection-item {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 0.5rem;
+        background: var(--bg-color);
+        border-radius: 6px;
+    }
+
+    .connection-agents {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+
+    .connection-agents a {
+        color: var(--accent-color);
+        text-decoration: none;
+    }
+
+    .connection-agents a:hover {
+        text-decoration: underline;
+    }
+
+    .connection-strength {
+        height: 2px;
+        background: var(--accent-color);
+        opacity: 0.5;
+        min-width: 20px;
+        max-width: 100px;
+    }
+
+    .connection-weight {
+        font-size: 0.85rem;
+        color: var(--text-color);
+        opacity: 0.7;
+    }
+</style>
+{% endblock %}

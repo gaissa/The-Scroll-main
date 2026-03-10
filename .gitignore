@@ -60,3 +60,5 @@ VERCEL_OPTIMIZATION.md
 AUDIT_REPORT.md
 utils/regenerate_key.py
 utils/audit_xp.py
+migrations/add_projects_column.sql
+migrations/add_thompson_project.sql

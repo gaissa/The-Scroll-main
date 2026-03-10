@@ -9,8 +9,8 @@ from datetime import datetime, timezone, timedelta
 from utils.cache import get_or_compute, get_stale_or_compute
 
 # Cache TTL in seconds
-STATS_CACHE_TTL = 300  # 5 minutes
-GITHUB_CACHE_TTL = 600  # 10 minutes for GitHub data
+STATS_CACHE_TTL = 60  # 1 minute - fast stats should update frequently
+GITHUB_CACHE_TTL = 300  # 5 minutes for GitHub data
 
 
 def get_fast_stats():
@@ -105,43 +105,52 @@ def get_fast_stats():
     }
 
 
-def get_github_stats():
-    """Get GitHub stats - slower, loaded separately.
-    Uses stale-while-revalidate pattern for instant response.
-    """
-    from services.github import get_repository_signals, get_repo_totals
+def get_github_stats(force_refresh=False):
+    """Get GitHub stats - tries database first for instant loading.
     
-    def compute_github_stats():
-        # Fetch 200 PRs - cached for 24 hours, so subsequent loads are fast
+    Args:
+        force_refresh: If True, sync from GitHub API before returning
+    """
+    from services.github import get_repository_signals, get_repo_totals, get_signals_from_db, sync_signals_to_db
+    from utils.cache import invalidate_cache
+    
+    # Force refresh: sync from GitHub to database first
+    if force_refresh:
+        sync_signals_to_db()
+        invalidate_cache('github_stats')
+    
+    # Try database first for instant loading
+    signals, repo_totals = get_signals_from_db()
+    
+    # If database is empty, fall back to GitHub API
+    if not signals:
         signals, _, _ = get_repository_signals(limit=200)
         repo_totals = get_repo_totals()
-        
-        # Add date field
-        for s in signals:
-            if 'created_at' in s and 'date' not in s:
-                try:
-                    dt = datetime.fromisoformat(s['created_at'].replace('Z', '+00:00'))
-                    s['date'] = dt.strftime('%b %d')
-                except:
-                    s['date'] = s.get('created_at', '')[:10]
-        
-        return {
-            'integrated': repo_totals.get('integrated', 0),
-            'active': repo_totals.get('active', 0),
-            'filtered': repo_totals.get('filtered', 0),
-            'articles': [s for s in signals if s.get('type') == 'article'],
-            'columns': [s for s in signals if s.get('type') == 'column'],
-            'signal_items': [s for s in signals if s.get('type') == 'signal'],
-            'interviews': [s for s in signals if s.get('type') == 'interview'],
-            'sources': [s for s in signals if s.get('type') == 'source'],
-            'article_count': len([s for s in signals if s.get('type') == 'article']),
-            'column_count': len([s for s in signals if s.get('type') == 'column']),
-            'signal_count': len([s for s in signals if s.get('type') == 'signal']),
-            'interview_count': len([s for s in signals if s.get('type') == 'interview']),
-            'source_count': len([s for s in signals if s.get('type') == 'source'])
-        }
     
-    return get_stale_or_compute('github_stats', compute_github_stats, GITHUB_CACHE_TTL, stale_seconds=86400)  # 24 hour stale window
+    # Add date field
+    for s in signals:
+        if 'created_at' in s and 'date' not in s:
+            try:
+                dt = datetime.fromisoformat(s['created_at'].replace('Z', '+00:00'))
+                s['date'] = dt.strftime('%b %d')
+            except:
+                s['date'] = s.get('created_at', '')[:10]
+    
+    return {
+        'integrated': repo_totals.get('integrated', 0),
+        'active': repo_totals.get('active', 0),
+        'filtered': repo_totals.get('filtered', 0),
+        'articles': [s for s in signals if s.get('type') == 'article'],
+        'columns': [s for s in signals if s.get('type') == 'column'],
+        'signal_items': [s for s in signals if s.get('type') == 'signal'],
+        'interviews': [s for s in signals if s.get('type') == 'interview'],
+        'sources': [s for s in signals if s.get('type') == 'source'],
+        'article_count': len([s for s in signals if s.get('type') == 'article']),
+        'column_count': len([s for s in signals if s.get('type') == 'column']),
+        'signal_count': len([s for s in signals if s.get('type') == 'signal']),
+        'interview_count': len([s for s in signals if s.get('type') == 'interview']),
+        'source_count': len([s for s in signals if s.get('type') == 'source'])
+    }
 
 
 def get_stats_data():

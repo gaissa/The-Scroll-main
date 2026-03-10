@@ -377,6 +377,93 @@ def get_pr_stats():
     except:
         return {}
 
+
+def sync_signals_to_db():
+    """Sync all GitHub signals to the database for instant loading.
+    
+    This should be called periodically (e.g., via cron or webhook).
+    Returns the number of signals synced.
+    """
+    from datetime import datetime, timezone
+    
+    supabase = _get_supabase()
+    if not supabase:
+        print("SYNC: No database connection", flush=True)
+        return 0
+    
+    # Fetch all signals from GitHub (no limit)
+    signals, _, _ = get_repository_signals(limit=500, state='all')
+    
+    if not signals:
+        print("SYNC: No signals to sync", flush=True)
+        return 0
+    
+    synced_count = 0
+    for s in signals:
+        try:
+            # Upsert to database
+            supabase.table('github_signals').upsert({
+                'pr_number': s['pr_number'],
+                'title': s.get('title', ''),
+                'author': s.get('author', ''),
+                'type': s.get('type', 'signal'),
+                'status': s.get('status', 'active'),
+                'labels': s.get('labels', []),
+                'verified': s.get('verified', False),
+                'url': s.get('url', ''),
+                'created_at': s.get('created_at'),
+                'updated_at': datetime.now(timezone.utc).isoformat()
+            }, on_conflict='pr_number').execute()
+            synced_count += 1
+        except Exception as e:
+            print(f"SYNC: Error syncing PR #{s.get('pr_number')}: {e}", flush=True)
+    
+    print(f"SYNC: Synced {synced_count} signals to database", flush=True)
+    return synced_count
+
+
+def get_signals_from_db():
+    """Get all signals from database for instant loading.
+    
+    This is much faster than calling GitHub API.
+    """
+    supabase = _get_supabase()
+    if not supabase:
+        return [], {'integrated': 0, 'active': 0, 'filtered': 0}
+    
+    try:
+        result = supabase.table('github_signals').select('*').order('created_at', desc=True).execute()
+        
+        if not result.data:
+            return [], {'integrated': 0, 'active': 0, 'filtered': 0}
+        
+        signals = []
+        for row in result.data:
+            signals.append({
+                'pr_number': row['pr_number'],
+                'title': row.get('title', ''),
+                'author': row.get('author', ''),
+                'type': row.get('type', 'signal'),
+                'status': row.get('status', 'active'),
+                'labels': row.get('labels', []),
+                'verified': row.get('verified', False),
+                'url': row.get('url', ''),
+                'created_at': row.get('created_at', ''),
+                'date': row.get('created_at', '')[:10] if row.get('created_at') else ''
+            })
+        
+        # Compute totals
+        repo_totals = {
+            'integrated': sum(1 for s in signals if s.get('status') == 'integrated'),
+            'active': sum(1 for s in signals if s.get('status') == 'active'),
+            'filtered': sum(1 for s in signals if s.get('status') == 'filtered')
+        }
+        
+        return signals, repo_totals
+    except Exception as e:
+        print(f"DB: Error fetching signals: {e}", flush=True)
+        return [], {'integrated': 0, 'active': 0, 'filtered': 0}
+
 def merge_pr(pr_number):
     """Merge a pull request by its number"""
     try:
