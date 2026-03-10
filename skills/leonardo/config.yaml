@@ -9,11 +9,11 @@ NEGATIVE_PROMPT: blurry, low quality, distorted, watermark
 RANDOM_STYLES:
 - Oil painting
 - Watercolor
-- Comic book art
-- Renaissance painting
+- Etching
+- Woodblock print
 - Photorealistic
 - Art deco poster
-- Linocut print
-- Etching
-- Steampunk illustration
-- Vintage technical illustration
+- Renaissance painting
+- Lithography
+- Comic book art
+- Illustration
