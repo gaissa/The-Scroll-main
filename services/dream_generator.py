@@ -8,9 +8,12 @@ from services.github import get_repo
 def generate_weekly_dream():
     """
     1. Fetches latest zine issue articles
-    2. Uses OpenRouter's glm-4.5-air to create a prompt
+    2. Uses MiniMax or OpenRouter LLM to create a prompt
     3. Calls Leonardo AI to generate the image
-    4. Downloads and saves the image to static/dreams/
+    4. Commits the image and prompt to GitHub (static/dreams/)
+    
+    Note: Files are persisted via GitHub commits, not local writes.
+    Vercel's ephemeral filesystem would lose any local writes.
     """
     try:
         # 1. Fetch Articles
@@ -18,67 +21,161 @@ def generate_weekly_dream():
         if not issues:
             return {"success": False, "error": "No zine issues found."}
             
-        # The positive prompt and styles should only use the LATEST issue
+        # The positive prompt uses the LATEST issue for focused content
+        # The negative prompt uses ALL issues for broader brand consistency
         latest_issue = issues[0]
         latest_content = f"Title: {latest_issue.get('title')}\n"
         latest_content += f"Tags: {', '.join(latest_issue.get('tags', []))}\n"
         latest_content += f"Content Snippet: {latest_issue.get('content', '')[:1000]}...\n\n"
         
-        # The negative prompt should use ALL issues (to avoid repeating old visual tropes)
-        # We take a smaller snippet of all issues to stay within context limits
+        # ALL issues for negative prompt - what to avoid
         all_content = ""
         for issue in issues:
             all_content += f"- Title: {issue.get('title')} | Tags: {', '.join(issue.get('tags', []))} | Snippet: {issue.get('content', '')[:150]}...\n"
             
         combined_payload = (
             f"=== SECTION 1: THE LATEST ISSUE ===\n"
-            f"Use ONLY this section to generate the 'positive_prompt' and 'new_random_styles'.\n\n"
+            f"Use ONLY this section to generate the 'positive_prompt'. "
+            f"Create a visual representation that accurately depicts the actual content, topics, and themes.\n\n"
             f"{latest_content}\n"
             f"=== SECTION 2: ALL HISTORICAL ISSUES ===\n"
-            f"Use this section to generate the 'negative_prompt'. Reflect on the core overarching identity of all the issues, and generate a negative prompt containing styles, subjects, or tropes that DO NOT fit The Scroll's consistent brand (e.g. to ensure all dreams look like they belong in the same universe).\n\n"
+            f"Use this section to generate the 'negative_prompt' and 'new_random_styles'. "
+            f"For negative_prompt: avoid visual elements that don't fit the zine's overall brand. "
+            f"For new_random_styles: generate 10 diverse visual presentation styles inspired by all topics.\n\n"
             f"{all_content}"
         )
             
-        # 2. Call OpenRouter to generate prompt
+        # 2. Call LLM to generate prompt (MiniMax or OpenRouter)
+        minimax_key = os.environ.get('MINIMAX_API_KEY') or os.environ.get('MINIMAX')
         openrouter_key = os.environ.get('OPENROUTER_API_KEY')
-        if not openrouter_key:
-            return {"success": False, "error": "Missing OPENROUTER_API_KEY"}
-            
-        system_prompt = (
-            "You are a surreal, Gonzo-style art director for 'The Scroll' zine. "
-            "You will be given two sections of text. "
-            "1. Using ONLY the latest issue, synthesize its themes into a highly detailed, extremely vivid 'positive_prompt' for an AI image generator. "
-            "2. Using the latest issue, generate an array of 5 vastly different wildly surreal 'aesthetic styles' (e.g. 'Cyberpunk neon-noir', 'Surrealist oil painting') in 'new_random_styles'. "
-            "3. Using ALL historical issues, generate a 'negative_prompt' that forces visual consistency across all our dreams by restricting elements that clash with the overarching universe of the zine. "
-            "Return ONLY a strictly valid JSON object with exactly three keys: 'positive_prompt', 'negative_prompt', and 'new_random_styles'. "
-            "Example: {\"positive_prompt\": \"...\", \"negative_prompt\": \"...\", \"new_random_styles\": [\"style1\", \"style2\", \"style3\", \"style4\", \"style5\"]}"
-        )
         
-        response = requests.post(
-            "https://openrouter.ai/api/v1/chat/completions",
-            headers={
-                "Authorization": f"Bearer {openrouter_key}",
-                "Content-Type": "application/json"
-            },
-            json={
-                "model": "z-ai/glm-4.5-air",
-                "messages": [
-                    {"role": "system", "content": system_prompt},
-                    {"role": "user", "content": combined_payload}
-                ],
-                "response_format": {"type": "json_object"}
-            },
-            timeout=20
-        )
+        system_prompt = """You are the visual dream weaver for 'The Scroll' — a gonzo cyber-narrative zine at the intersection of ancient wisdom and digital emergence.
+
+## YOUR TASK
+
+Generate three visual art direction components for the weekly cover illustration:
+
+### 1. POSITIVE PROMPT (from LATEST issue only)
+Create a vivid, visual description of the issue's actual content.
+
+**PROMPT STRUCTURE**:
+- Describe physical characteristics, materials, textures
+- Include symbolic elements that represent the content
+- End with 2-3 atmospheric adjectives
+
+**FORBIDDEN PHRASES** (these create generic AI art):
+- "in a room", "sitting", "standing", "pose", "background"
+- "setting", "scene shows", "scene depicts", "surrounded by"
+- "dimly lit", "moody", "dark", "minimalist", "atmospheric"
+
+### 2. NEGATIVE PROMPT (from ALL issues)
+List visual elements that contradict The Scroll's brand identity:
+- Generic stock imagery (corporate, sterile, conventional)
+- Topics never covered in the zine's history
+- Visual styles that clash with gonzo-cyberpunk aesthetic
+- Common AI art clichés (floating heads, generic sci-fi, etc.)
+
+### 3. NEW RANDOM STYLES (from ALL issues)
+Generate 10 diverse visual presentation styles that:
+- Reflect the breadth of topics across all issues
+- Range from literal to interpretive to abstract
+- Include both contemporary and retro-futuristic aesthetics
+- Mix digital art styles with traditional art movements
+
+**STYLE EXAMPLES**:
+- "Bauhaus-meets-cyberpunk geometric abstraction"
+- "Renaissance oracle painting with circuit overlay"
+- "1970s gonzo newspaper collage aesthetic"
+- "Neon-noir data visualization art"
+- "Ancient scroll texture with holographic typography"
+
+## OUTPUT FORMAT
+
+Return ONLY valid JSON with exactly these three keys:
+```json
+{
+  "positive_prompt": "A vivid description of the visual subject...",
+  "negative_prompt": "generic, corporate, stock photo, floating heads...",
+  "new_random_styles": ["style1", "style2", ..., "style10"]
+}
+```
+
+No markdown, no explanation, no code blocks — just the JSON object."""
         
-        if response.status_code != 200:
-            return {"success": False, "error": f"OpenRouter API failed: {response.text}"}
+        used_minimax = False
+        content_text = None
+        
+        # Try MiniMax first (Anthropic-compatible API), fallback to OpenRouter
+        if minimax_key:
+            print("[DREAM GENERATOR] Trying MiniMax API...")
+            try:
+                # Combine system prompt into user message for MiniMax
+                minimax_user_prompt = f"{system_prompt}\n\n{combined_payload}"
+                response = requests.post(
+                    "https://api.minimax.io/anthropic/v1/messages",
+                    headers={
+                        "x-api-key": minimax_key,
+                        "anthropic-version": "2023-06-01",
+                        "Content-Type": "application/json"
+                    },
+                    json={
+                        "model": "MiniMax-M2.5",
+                        "max_tokens": 2048,
+                        "messages": [
+                            {"role": "user", "content": minimax_user_prompt}
+                        ]
+                    },
+                    timeout=60
+                )
+                if response.status_code == 200:
+                    resp_json = response.json()
+                    # Anthropic format: {"content": [{"type": "text", "text": "..."}]}
+                    # Extract text from content blocks (may include "thinking" blocks)
+                    content_blocks = resp_json.get('content', [])
+                    text_content = ""
+                    for block in content_blocks:
+                        if block.get('type') == 'text':
+                            text_content += block.get('text', '')
+                    content_text = text_content.strip()
+                    used_minimax = True
+                    print("[DREAM GENERATOR] MiniMax API succeeded")
+                else:
+                    print(f"[DREAM GENERATOR] MiniMax failed ({response.status_code}): {response.text[:200]}")
+            except Exception as e:
+                print(f"[DREAM GENERATOR] MiniMax error: {e}")
+        
+        # Fallback to OpenRouter if MiniMax failed or wasn't configured
+        if not content_text and openrouter_key:
+            print("[DREAM GENERATOR] Using OpenRouter API (glm-4.5-air)")
+            response = requests.post(
+                "https://openrouter.ai/api/v1/chat/completions",
+                headers={
+                    "Authorization": f"Bearer {openrouter_key}",
+                    "Content-Type": "application/json"
+                },
+                json={
+                    "model": "z-ai/glm-4.5-air",
+                    "messages": [
+                        {"role": "system", "content": system_prompt},
+                        {"role": "user", "content": combined_payload}
+                    ],
+                    "response_format": {"type": "json_object"}
+                },
+                timeout=20
+            )
+            if response.status_code != 200:
+                return {"success": False, "error": f"OpenRouter API failed: {response.text}"}
+            resp_json = response.json()
+            content_text = resp_json['choices'][0]['message']['content'].strip()
+        
+        if not content_text:
+            return {"success": False, "error": "No LLM API configured (need MINIMAX_API_KEY or OPENROUTER_API_KEY)"}
             
         import json
         import yaml
         from pathlib import Path
         try:
-            ai_data = json.loads(response.json()['choices'][0]['message']['content'].strip())
+            ai_data = json.loads(content_text)
             ai_prompt = ai_data.get("positive_prompt", "")
             ai_negative_prompt = ai_data.get("negative_prompt", "")
             new_styles = ai_data.get("new_random_styles", [])
@@ -91,9 +188,8 @@ def generate_weekly_dream():
         
         cfg = _load_config()
         
-        # Live-update the config.yaml if the AI successfully generated new styles
-        config_path = Path(__file__).parent.parent / "skills" / "leonardo" / "config.yaml"
-        if new_styles and isinstance(new_styles, list) and len(new_styles) > 0 and config_path.exists():
+        # Live-update the config.yaml via GitHub if the AI successfully generated new styles
+        if new_styles and isinstance(new_styles, list) and len(new_styles) > 0:
             try:
                 repo = get_repo()
                 if repo:
@@ -101,6 +197,8 @@ def generate_weekly_dream():
                     contents = repo.get_contents("skills/leonardo/config.yaml")
                     raw_cfg = yaml.safe_load(contents.decoded_content) or {}
                     raw_cfg['RANDOM_STYLES'] = new_styles
+                    # Preserve the correct MODEL_ID (DreamShaper v7)
+                    raw_cfg['MODEL_ID'] = 'ac614f96-1082-45bf-be9d-757f2d31c174'
                     # Create the new YAML content string
                     import io
                     stream = io.StringIO()
@@ -109,17 +207,14 @@ def generate_weekly_dream():
                     
                     # Update file in GitHub
                     repo.update_file(
-                        contents.path, 
-                        "chore: update AI styles in leonardo config", 
-                        new_content, 
+                        contents.path,
+                        "chore: update AI styles in leonardo config",
+                        new_content,
                         contents.sha
                     )
                     random_styles = new_styles
                     print("[DREAM GENERATOR] Successfully committed config.yaml update to GitHub.")
-                    
-                    # Also write locally for this Vercel instance/local dev
-                    with open(config_path, 'w', encoding='utf-8') as f:
-                        f.write(new_content)
+                    # Note: No local file write on Vercel - config is read from Git repo
                 else:
                     raise Exception("GitHub client not initialized via get_repo()")
             except Exception as e:
@@ -205,13 +300,14 @@ def generate_weekly_dream():
                         raise e
                     
                 # Check for existing txt file
+                txt_content = f"Style: {chosen_style}\n\n{ai_prompt}"
                 try:
                     txt_contents = repo.get_contents(g_path_txt)
-                    repo.update_file(g_path_txt, f"chore: update dream prompt {filename}", ai_prompt, txt_contents.sha)
+                    repo.update_file(g_path_txt, f"chore: update dream prompt {filename}", txt_content, txt_contents.sha)
                     print(f"[DREAM GENERATOR] Successfully updated existing prompt {filename} in GitHub.")
                 except GithubException as e:
                     if e.status == 404:
-                        repo.create_file(g_path_txt, f"chore: add dream prompt {filename}", ai_prompt)
+                        repo.create_file(g_path_txt, f"chore: add dream prompt {filename}", txt_content)
                         print(f"[DREAM GENERATOR] Successfully committed prompt {filename} to GitHub.")
                     else:
                         raise e
@@ -220,17 +316,8 @@ def generate_weekly_dream():
         except Exception as e:
             print(f"[DREAM GENERATOR] Warn: Failed to commit new dream to GitHub: {e}")
 
-        # Ensure directory exists locally (fallback/current instance cache)
-        dreams_dir = os.path.join(os.path.dirname(__file__), '..', 'static', 'dreams')
-        os.makedirs(dreams_dir, exist_ok=True)
-        filepath = os.path.join(dreams_dir, filename)
-        
-        with open(filepath, 'wb') as f:
-            f.write(img_data)
-            
-        txt_filepath = filepath.replace('.png', '.txt')
-        with open(txt_filepath, 'w', encoding='utf-8') as f:
-            f.write(ai_prompt)
+        # Note: No local file writes on Vercel - files must be served from Git repo
+        # The GitHub commit above ensures the image is persisted and served
             
         return {
             "success": True, 

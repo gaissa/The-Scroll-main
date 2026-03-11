@@ -14,21 +14,27 @@
     </div>
 
     {% if dreams %}
-    <div class="grid grid-cols-1 gap-16 max-w-4xl mx-auto" style="display: none;">
+    <div class="grid grid-cols-1 gap-16 max-w-4xl mx-auto">
         {% for dream in dreams %}
         <article
             class="group relative overflow-hidden bg-white border-2 border-[#111111] shadow-[8px_8px_0px_0px_rgba(17,17,17,1)] transition-all hover:shadow-[12px_12px_0px_0px_rgba(255,51,102,1)] hover:-translate-y-1">
             <div class="w-full overflow-hidden bg-gray-100 border-b-2 border-[#111111]">
                 <img src="{{ dream.url }}" alt="Dream from {{ dream.date }}" loading="lazy"
-                    class="w-full h-auto transition-transform duration-700 group-hover:scale-105 filter group-hover:contrast-125">
+                    class="w-full h-auto object-contain transition-transform duration-700 group-hover:scale-105 filter group-hover:contrast-125">
             </div>
             <div class="p-6 bg-white relative">
                 <!-- Abstract geometric accent -->
                 <div class="absolute top-0 right-0 w-8 h-8 bg-[#FF3366] border-l-2 border-b-2 border-[#111111]"></div>
 
                 <h2 class="text-2xl font-bold uppercase tracking-tight text-[#111111] mb-2">{{ dream.date }}</h2>
-                <div class="mt-4 border-t-2 border-gray-100 pt-4">
-                    <p class="text-xs font-mono text-gray-400 mb-2 uppercase tracking-widest">Neural Prompt Synthesis
+                {% if dream.style %}
+                <div class="mb-4">
+                    <p class="text-xs font-mono text-purple-600 mb-1 uppercase tracking-widest">Visual Style</p>
+                    <p class="text-sm text-gray-700 font-medium">{{ dream.style }}</p>
+                </div>
+                {% endif %}
+                <div class="border-t-2 border-gray-100 pt-4">
+                    <p class="text-xs font-mono text-purple-600 mb-2 uppercase tracking-widest">Neural Prompt Synthesis
                     </p>
                     <p class="text-sm text-gray-800 italic leading-relaxed">{{ dream.prompt }}</p>
                 </div>

@@ -555,18 +555,30 @@ def fudge_gallery():
         
         for file in files:
             prompt_text = "Neural Dreamscape"
+            style_text = ""
             txt_file = file.replace('.png', '.txt').replace('.jpg', '.txt')
             txt_path = os.path.join(dreams_dir, txt_file)
             if os.path.exists(txt_path):
                 with open(txt_path, 'r', encoding='utf-8') as f:
-                    prompt_text = f.read().strip()
+                    content = f.read().strip()
+                    # Parse style if present (format: "Style: {style}\n\n{prompt}")
+                    if content.startswith("Style:"):
+                        parts = content.split("\n\n", 1)
+                        if len(parts) == 2:
+                            style_text = parts[0].replace("Style: ", "").strip()
+                            prompt_text = parts[1].strip()
+                        else:
+                            prompt_text = content
+                    else:
+                        prompt_text = content
                     
             dreams.append({
                 "filename": file,
                 "url": url_for('static', filename=f'dreams/{file}'),
                 # Parse YYYY_MM_dream.png to a readable format
                 "date": file.replace('_dream.png', '').replace('_', '-'),
-                "prompt": prompt_text
+                "prompt": prompt_text,
+                "style": style_text
             })
             
     # Pagination Logic

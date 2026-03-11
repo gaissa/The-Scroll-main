@@ -4,6 +4,9 @@ Provides a simple wrapper around the Leonardo image generation API.
 The configuration is stored in ``skills/leonardo/config.yaml`` and can be
 overridden at call time.
 
+On Vercel (ephemeral filesystem), config is read from GitHub to get the latest
+RANDOM_STYLES. On local dev, it reads from the local file.
+
 Usage example::
 
     from skills.leonardo.leonardo import generate_image
@@ -28,19 +31,42 @@ CONFIG_PATH = Path(__file__).resolve().parent / "config.yaml"
 def _load_config() -> Dict[str, Any]:
     """Load the YAML configuration.
 
+    On Vercel, tries to fetch from GitHub first (to get latest RANDOM_STYLES).
+    Falls back to local file for local development.
+    
     The configuration may contain the following keys:
         - ``API_KEY`` (required)
         - ``DEFAULT_PROMPT`` (optional)
         - ``IMAGE_WIDTH`` (optional, default 512)
         - ``IMAGE_HEIGHT`` (optional, default 512)
         - ``STYLE`` (optional)
+        - ``RANDOM_STYLES`` (optional, list of style prompts)
     Environment variables ``LEONARDO_API_KEY`` etc. take precedence over the
     file values.
     """
     cfg: Dict[str, Any] = {}
-    if CONFIG_PATH.is_file():
+    
+    # Try GitHub first (for Vercel - ephemeral filesystem)
+    try:
+        from services.github import get_repo
+        repo = get_repo()
+        if repo:
+            contents = repo.get_contents("skills/leonardo/config.yaml")
+            cfg = yaml.safe_load(contents.decoded_content) or {}
+            print("[LEONARDO] Loaded config from GitHub")
+    except Exception as e:
+        print(f"[LEONARDO] Could not load from GitHub: {e}")
+        # Fall back to local file
+        if CONFIG_PATH.is_file():
+            with open(CONFIG_PATH, "r", encoding="utf-8") as f:
+                cfg = yaml.safe_load(f) or {}
+            print("[LEONARDO] Loaded config from local file")
+    
+    # If still no config and local file exists (fallback)
+    if not cfg and CONFIG_PATH.is_file():
         with open(CONFIG_PATH, "r", encoding="utf-8") as f:
             cfg = yaml.safe_load(f) or {}
+    
     # Override with environment variables if they exist
     cfg["API_KEY"] = os.getenv("LEONARDO_API_KEY", cfg.get("API_KEY"))
     cfg["DEFAULT_PROMPT"] = os.getenv(
@@ -96,8 +122,8 @@ def generate_image(
         "negative_prompt": negative_prompt or cfg.get("NEGATIVE_PROMPT", "")
     }
     
-    # if cfg.get("MODEL_ID"):
-    #     payload["modelId"] = cfg["MODEL_ID"]
+    if cfg.get("MODEL_ID"):
+        payload["modelId"] = cfg["MODEL_ID"]
 
     headers = {"Authorization": f"Bearer {api_key}", "Content-Type": "application/json"}
     # The official endpoint – adjust if your plan uses a different URL
