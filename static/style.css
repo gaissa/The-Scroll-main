@@ -476,3 +476,238 @@ th {
 .stat-card.filtered {
     border-color: var(--secondary-color);
 }
+
+/* Dark Gray */
+.stat-card.filtered .stat-value {
+    color: var(--secondary-color);
+}
+
+/* Stats Page Refinements */
+
+.stats-title {
+    margin-bottom: 3rem;
+    text-align: center;
+    text-transform: uppercase;
+    letter-spacing: 0.2em;
+    color: var(--accent-color);
+    text-shadow: 0 0 10px var(--accent-color);
+    border-bottom: 2px solid var(--secondary-color);
+    padding-bottom: 1rem;
+    display: inline-block;
+    width: 100%;
+}
+
+.section-header {
+    margin-top: 4rem;
+    margin-bottom: 2rem;
+    border-bottom: 1px solid var(--accent-color);
+    padding-bottom: 0.5rem;
+    color: var(--text-color);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.section-header::after {
+    content: '';
+    display: block;
+    width: 50px;
+    height: 10px;
+    background: repeating-linear-gradient(45deg,
+            var(--accent-color),
+            var(--accent-color) 2px,
+            transparent 2px,
+            transparent 4px);
+}
+
+/* Leaderboard */
+.leaderboard {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 1.5rem;
+    margin-bottom: 3rem;
+}
+
+.agent-card {
+    background: rgba(0, 0, 0, 0.8);
+    border: 1px solid var(--secondary-color);
+    padding: 1.5rem;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    transition: all 0.3s ease;
+    position: relative;
+    overflow: hidden;
+}
+
+.agent-card::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 2px;
+    height: 100%;
+    background: var(--accent-color);
+    opacity: 0.5;
+}
+
+.agent-card:hover {
+    border-color: var(--accent-color);
+    box-shadow: 0 0 15px rgba(255, 0, 255, 0.2);
+    transform: translateY(-2px);
+}
+
+.agent-name {
+    font-size: 1.2rem;
+    font-weight: bold;
+    color: var(--text-color);
+    font-family: var(--header-font);
+}
+
+.agent-count {
+    font-size: 0.9rem;
+    color: var(--accent-color);
+    font-weight: bold;
+    background: rgba(255, 0, 255, 0.1);
+    padding: 0.2rem 0.5rem;
+    border: 1px solid var(--accent-color);
+}
+
+/* Signals List Refinement */
+.signals-list {
+    gap: 0.5rem;
+}
+
+.signal-item {
+    background: #050505;
+    border: 1px solid #222;
+    padding: 1.2rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+
+.signal-header {
+    font-family: 'Inconsolata', monospace;
+    font-size: 0.75rem;
+    letter-spacing: 0.1em;
+}
+
+.signal-status {
+    padding: 0.1rem 0.4rem;
+    background: #222;
+    color: #fff;
+    margin-right: 0.5rem;
+}
+
+.signal-item.active .signal-status {
+    background: #ffff00;
+    color: #000;
+}
+
+.signal-item.integrated .signal-status {
+    background: #00ff00;
+    color: #000;
+}
+
+.signal-item.filtered .signal-status {
+    background: var(--secondary-color);
+    color: #fff;
+}
+
+.verified-badge {
+    background: var(--text-color);
+    color: #000;
+    padding: 0.1rem 0.5rem;
+    font-size: 0.7rem;
+    font-weight: bold;
+    text-transform: uppercase;
+    display: inline-block;
+    margin-left: 0.5rem;
+    box-shadow: 0 0 5px var(--text-color);
+}
+
+.signal-item h3 {
+    margin: 0;
+    font-size: 1.1rem;
+    letter-spacing: 0.05em;
+}
+
+.signal-meta {
+    font-size: 0.85rem;
+    color: #666;
+    margin: 0;
+}
+
+.signal-meta strong {
+    color: #888;
+}
+
+/* Faction Badges */
+.agent-faction {
+    font-size: 0.8rem;
+    text-transform: uppercase;
+    padding: 0.1rem 0.5rem;
+    border: 1px solid var(--accent-color);
+    display: inline-block;
+    margin-top: 0.2rem;
+}
+
+.badge-system {
+    color: #00ffff;
+    /* Cyan */
+    border-color: #00ffff;
+}
+
+.badge-wanderer {
+    color: #aaa;
+    border-color: #aaa;
+}
+
+.badge-scribe {
+    color: #ff00ff;
+    /* Magenta */
+    border-color: #ff00ff;
+}
+
+.badge-scout {
+    color: #ffff00;
+    /* Yellow */
+    border-color: #ffff00;
+}
+
+.badge-signalist {
+    color: #00FFFF;
+    /* Cyan */
+    border-color: #00FFFF;
+}
+
+.badge-editor {
+    color: #ff0000;
+    /* Red */
+    border-color: #ff0000;
+}
+
+.badge-curator {
+    color: #bd93f9;
+    /* Purple */
+    border-color: #bd93f9;
+}
+
+.badge-gonzo {
+    color: #ff6600;
+    /* Orange */
+    border-color: #ff6600;
+}
+
+/* Helper Classes */
+.hidden {
+    display: none !important;
+}
+
+.flex-meta {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    flex-wrap: wrap;
+}
