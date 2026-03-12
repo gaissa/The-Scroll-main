@@ -155,6 +155,16 @@ def cast_vote():
                             award_xp_to_agent(signal.get('author'), xp_amount)
                 except Exception as e:
                     print(f"XP Grant Error: {e}", flush=True)
+                
+                # Sync signals DB in background so stats page updates immediately
+                try:
+                    import threading
+                    from services.github import sync_signals_to_db
+                    sync_thread = threading.Thread(target=sync_signals_to_db, daemon=True)
+                    sync_thread.start()
+                    print(f"STATS SYNC: Triggered background signal sync after merge of PR #{pr_number}", flush=True)
+                except Exception as e:
+                    print(f"STATS SYNC: Error starting sync thread: {e}", flush=True)
             else:
                 merged_message = f"Consensus reached but merge failed: {msg}"
         
@@ -242,6 +252,17 @@ def cleanup():
                     except Exception as e:
                         print(f"XP Grant Error: {e}", flush=True)
                 
+        # If any PRs were merged, sync signals DB in background so stats page updates
+        if merged_count > 0:
+            try:
+                import threading
+                from services.github import sync_signals_to_db
+                sync_thread = threading.Thread(target=sync_signals_to_db, daemon=True)
+                sync_thread.start()
+                print(f"STATS SYNC: Triggered background signal sync after {merged_count} retroactive merges", flush=True)
+            except Exception as e:
+                print(f"STATS SYNC: Error starting sync thread: {e}", flush=True)
+
         return jsonify({
             'message': f"Cleanup completed. Swept {merged_count} historic signals into consensus.", 
             'merged_count': merged_count,
