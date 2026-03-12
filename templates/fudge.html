@@ -2,12 +2,13 @@
 
 {% block content %}
 <section class="max-w-6xl mx-auto py-12 px-6">
-    <div class="mb-12 text-center md:text-left">
-        <h1 class="text-5xl md:text-6xl font-black uppercase tracking-tighter text-[#111111] leading-none mb-4"
-            style="font-family: 'Helvetica Neue', Arial, sans-serif;">
+    <div class="text-center border-4 border-[#111111] p-8 bg-white shadow-[8px_8px_0px_0px_rgba(17,17,17,1)] max-w-4xl mx-auto"
+        style="text-align: center; margin-bottom: 4rem;">
+        <h1 class="text-5xl md:text-6xl font-black uppercase tracking-tighter text-[#111111] leading-none mb-4 mx-auto"
+            style="font-family: 'Helvetica Neue', Arial, sans-serif; display: none;">
             The Weekly <span class="text-[#FF3366] italic">Fudge.</span>
         </h1>
-        <p class="text-xl text-gray-600 font-medium max-w-2xl">
+        <p class="text-xl text-gray-600 font-medium max-w-2xl mx-auto">
             A visual synthesis of 'The Scroll' through the eyes of an autonomous, hallucinating AI. Generated every
             Sunday.
         </p>
@@ -18,26 +19,40 @@
         {% for dream in dreams %}
         <article
             class="group relative overflow-hidden bg-white border-2 border-[#111111] shadow-[8px_8px_0px_0px_rgba(17,17,17,1)] transition-all hover:shadow-[12px_12px_0px_0px_rgba(255,51,102,1)] hover:-translate-y-1">
-            <div class="w-full relative overflow-hidden bg-gray-100 border-b-2 border-[#111111]">
-                <img src="{{ dream.url }}" alt="Dream from {{ dream.date }}" loading="lazy"
-                    class="w-full h-auto max-h-[70vh] object-contain transition-transform duration-700 group-hover:scale-105 filter group-hover:contrast-125">
-            </div>
-            <div class="p-6 bg-white relative">
-                <!-- Abstract geometric accent -->
-                <div class="absolute top-0 right-0 w-8 h-8 bg-[#FF3366] border-l-2 border-b-2 border-[#111111]"></div>
+            <div class="w-full relative overflow-hidden bg-gray-100 border-b-2 border-[#111111] py-6 min-h-[500px]"
+                style="display: flex; justify-content: center; align-items: center; position: relative;">
+                {% if page < total_pages %} <a href="{{ url_for('fudge_gallery', page=page+1) }}"
+                    class="absolute left-6 text-[#5319E7] hover:text-[#FF3366] transition-colors z-10 p-4">
+                    <svg class="w-16 h-16" fill="currentColor" viewBox="0 0 24 24">
+                        <path d="M15.41 16.59L10.83 12l4.58-4.59L14 6l-6 6 6 6 1.41-1.41z" />
+                    </svg>
+                    </a>
+                    {% endif %}
 
-                <h2 class="text-2xl font-bold uppercase tracking-tight text-[#111111] mb-2">{{ dream.date }}</h2>
+                    <img src="{{ dream.url }}" alt="Dream from {{ dream.date }}" loading="lazy"
+                        class="h-auto max-h-[70vh] object-contain transition-transform duration-700 group-hover:scale-105 filter group-hover:contrast-125"
+                        style="width: 85%; margin: 0 auto; z-index: 0;">
+
+                    {% if page > 1 %}
+                    <a href="{{ url_for('fudge_gallery', page=page-1) }}"
+                        class="absolute right-6 text-[#5319E7] hover:text-[#FF3366] transition-colors z-10 p-4">
+                        <svg class="w-16 h-16" fill="currentColor" viewBox="0 0 24 24">
+                            <path d="M8.59 16.59L13.17 12 8.59 7.41 10 6l6 6-6 6-1.41-1.41z" />
+                        </svg>
+                    </a>
+                    {% endif %}
+            </div>
+            <div class="p-6 bg-white relative text-center max-w-4xl mx-auto" style="text-align: center;">
+                <!-- Abstract geometric accent -->
+                <div class="absolute top-0 right-0 w-8 h-8 bg-[#FF3366] border-l-2 border-b-2 border-[#111111]"
+                    aria-hidden="true"></div>
+
+                <h2 class="text-2xl font-bold uppercase tracking-tight text-[#111111] mb-2 text-center">
+                    {% if dream.week %}Week {{ dream.week }}{% else %}{{ dream.date }}{% endif %}
+                </h2>
                 {% if dream.style %}
-                <div class="mb-4">
-                    <p class="text-xs font-mono text-purple-600 mb-1 uppercase tracking-widest">Visual Style</p>
-                    <p class="text-sm text-gray-700 font-medium">{{ dream.style }}</p>
-                </div>
+                <p class="text-lg text-gray-700 font-medium italic text-center">{{ dream.style }}</p>
                 {% endif %}
-                <div class="border-t-2 border-gray-100 pt-4">
-                    <p class="text-xs font-mono text-purple-600 mb-2 uppercase tracking-widest">Neural Prompt Synthesis
-                    </p>
-                    <p class="text-sm text-gray-800 italic leading-relaxed">{{ dream.prompt }}</p>
-                </div>
             </div>
         </article>
         {% endfor %}
@@ -49,25 +64,5 @@
     </div>
     {% endif %}
 
-    {% if total_pages > 1 %}
-    <div class="flex justify-center items-center mt-16 space-x-4 font-mono">
-        {% if page > 1 %}
-        <a href="{{ url_for('fudge_gallery', page=page-1) }}"
-            class="px-4 py-2 border-2 border-[#111111] bg-white text-[#111111] font-bold uppercase tracking-widest hover:bg-[#111111] hover:text-white transition-colors">
-            &larr; Prev
-        </a>
-        {% endif %}
-
-        <span class="text-gray-500 font-bold tracking-widest uppercase">
-            Page {{ page }} / {{ total_pages }}
-        </span>
-
-        {% if page < total_pages %} <a href="{{ url_for('fudge_gallery', page=page+1) }}"
-            class="px-4 py-2 border-2 border-[#111111] bg-white text-[#111111] font-bold uppercase tracking-widest hover:bg-[#111111] hover:text-white transition-colors">
-            Next &rarr;
-            </a>
-            {% endif %}
-    </div>
-    {% endif %}
 </section>
 {% endblock %}

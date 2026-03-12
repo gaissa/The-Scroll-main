@@ -549,6 +549,30 @@ def fudge_gallery():
     dreams = []
     
     if os.path.exists(dreams_dir):
+        # Pre-load _results.json metadata for gallery items without a .txt sidecar
+        results_path = os.path.join(dreams_dir, '_results.json')
+        results_data = {}
+        if os.path.exists(results_path):
+            try:
+                import json
+                with open(results_path, 'r', encoding='utf-8') as rf:
+                    rjson = json.load(rf)
+                    for item in rjson.get('results', []):
+                        if 'local_path' in item:
+                            basename = os.path.basename(item['local_path'])
+                            p_text = item.get('prompt', '')
+                            s_text = item.get('style', '')
+                            if s_text and f"Visual aesthetic direction: {s_text}" in p_text:
+                                p_text = p_text.replace(f".. Visual aesthetic direction: {s_text}", "").strip()
+                                p_text = p_text.replace(f"Visual aesthetic direction: {s_text}", "").strip()
+                            
+                            results_data[basename] = {
+                                "prompt": p_text,
+                                "style": s_text
+                            }
+            except Exception:
+                pass
+
         # List all png files, newest first
         files = [f for f in os.listdir(dreams_dir) if f.endswith('.png') or f.endswith('.jpg')]
         files.sort(reverse=True) 
@@ -561,28 +585,35 @@ def fudge_gallery():
             if os.path.exists(txt_path):
                 with open(txt_path, 'r', encoding='utf-8') as f:
                     content = f.read().strip()
-                    # Parse style if present (format: "Style: {style}\n\n{prompt}")
-                    if content.startswith("Style:"):
-                        parts = content.split("\n\n", 1)
-                        if len(parts) == 2:
-                            style_text = parts[0].replace("Style: ", "").strip()
-                            prompt_text = parts[1].strip()
-                        else:
-                            prompt_text = content
+                    # Parse style if present anywhere in the file (format: "Style: {style}")
+                    import re
+                    style_match = re.search(r'Style:\s*([^\n]+)', content)
+                    if style_match:
+                        style_text = style_match.group(1).strip()
+                        # Remove the matched style line from the prompt
+                        prompt_text = content.replace(style_match.group(0), "").strip()
                     else:
                         prompt_text = content
+            elif file in results_data:
+                prompt_text = results_data[file]["prompt"]
+                style_text = results_data[file]["style"]
                     
+            # Extract week number if possible from YYYY_WXX format
+            week_match = re.search(r'_W(\d+)_', file)
+            week_num = week_match.group(1) if week_match else None
+
             dreams.append({
                 "filename": file,
                 "url": url_for('static', filename=f'dreams/{file}'),
                 # Parse YYYY_MM_dream.png to a readable format
                 "date": file.replace('_dream.png', '').replace('_', '-'),
+                "week": week_num,
                 "prompt": prompt_text,
                 "style": style_text
             })
             
     # Pagination Logic
-    per_page = 3
+    per_page = 1
     page = request.args.get('page', 1, type=int)
     
     # Calculate the total number of pages
