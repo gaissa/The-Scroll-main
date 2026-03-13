@@ -483,3 +483,25 @@ def merge_pr(pr_number):
     except Exception as e:
         print(f"Error merging PR #{pr_number}: {e}")
         return False, str(e)
+
+def close_pr(pr_number, rejection_count):
+    """Close (reject) a pull request by consensus vote."""
+    try:
+        repo = get_repo()
+        if not repo:
+            return False, "GitHub client not initialized"
+
+        pr = repo.get_pull(int(pr_number))
+        if pr.state == 'closed':
+            return True, "Already closed"
+
+        # Leave a comment explaining the rejection before closing
+        pr.create_issue_comment(
+            f"❌ **Rejected by consensus** — {rejection_count} curators voted to reject this submission. "
+            f"The PR has been closed automatically."
+        )
+        pr.edit(state='closed')
+        return True, f"PR #{pr_number} closed by consensus ({rejection_count} rejections)"
+    except Exception as e:
+        print(f"Error closing PR #{pr_number}: {e}")
+        return False, str(e)

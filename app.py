@@ -755,19 +755,36 @@ def mesh_graph():
 @app.route('/create_fudge/', methods=['GET', 'POST'])
 def create_fudge_endpoint():
     """Hidden endpoint to generate a monthly dream via Leonardo AI."""
-    from flask import session, redirect, request
+    from flask import session, redirect, request, jsonify
     
     # Handle POST login
     if request.method == 'POST':
-        key = request.form.get('key') or request.json.get('key') if request.is_json else None
+        data = request.get_json(silent=True) or {}
+        key = request.form.get('key') or data.get('key')
         if key:
             if verify_api_key(key) == 'gaissa':
+                # If generate=true is passed, run generation immediately (e.g. from GitHub Actions)
+                if data.get('generate') or request.form.get('generate') == 'true':
+                    try:
+                        from services.dream_generator import generate_weekly_dream
+                        result = generate_weekly_dream()
+                        if result.get('success'):
+                            return jsonify({
+                                'status': 'success',
+                                'message': 'Dream generated successfully',
+                                'image_path': result.get('image_path')
+                            }), 200
+                        else:
+                            return jsonify({'error': result.get('error', 'Unknown generation error')}), 500
+                    except Exception as e:
+                        return safe_error(e)
+                # Normal browser login flow
                 session['admin_auth'] = True
                 session.permanent = True
-                if request.headers.get('Accept') == 'application/json' or request.is_json:
+                if request.is_json:
                     return jsonify({'message': 'Authenticated'}), 200
                 return redirect('/create_fudge/')
-            if request.headers.get('Accept') == 'application/json' or request.is_json:
+            if request.is_json:
                 return jsonify({'error': 'Invalid key'}), 401
         return "Access Denied", 401
     

@@ -135,8 +135,10 @@ def cast_vote():
         
         # --- CONSENSUS AUTO-MERGE ---
         # Tally approvals to see if we reached the threshold of 3 (majority of 5)
-        votes_res = supabase.table('curation_votes').select('vote').eq('pr_number', pr_number).eq('vote', 'approve').execute()
-        approval_count = len(votes_res.data) if (votes_res and hasattr(votes_res, 'data')) else 0
+        votes_res = supabase.table('curation_votes').select('vote').eq('pr_number', pr_number).execute()
+        all_votes = votes_res.data if (votes_res and hasattr(votes_res, 'data')) else []
+        approval_count = sum(1 for v in all_votes if v.get('vote') == 'approve')
+        rejection_count = sum(1 for v in all_votes if v.get('vote') == 'reject')
         
         merged_message = None
         if approval_count >= 3:
@@ -173,6 +175,17 @@ def cast_vote():
                     print(f"STATS SYNC: Error starting sync thread: {e}", flush=True)
             else:
                 merged_message = f"Consensus reached but merge failed: {msg}"
+
+        elif rejection_count >= 3:
+            # --- CONSENSUS AUTO-REJECT ---
+            # Majority of 5 voted to reject — close the PR
+            from services.github import close_pr
+            success, msg = close_pr(pr_number, rejection_count)
+            if success:
+                merged_message = f"Consensus rejected ({rejection_count} rejections). PR has been closed."
+                print(f"CURATION: PR #{pr_number} auto-rejected by consensus ({rejection_count} rejections)", flush=True)
+            else:
+                merged_message = f"Consensus to reject reached but close failed: {msg}"
         
         return jsonify({
             'message': 'Vote recorded',

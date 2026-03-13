@@ -1,0 +1,28 @@
+name: Weekly Fudge Generation
+
+on:
+  schedule:
+    # Every Sunday at 00:00 UTC
+    - cron: '0 0 * * 0'
+  workflow_dispatch: # Allow manual trigger from GitHub UI
+
+jobs:
+  generate-fudge:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Generate weekly dream
+        run: |
+          response=$(curl -s -o /tmp/response.json -w "%{http_code}" \
+            -X POST https://the-scroll.vercel.app/create_fudge/ \
+            -H "Content-Type: application/json" \
+            -d "{\"key\": \"${{ secrets.FUDGE_KEY }}\", \"generate\": true}")
+          
+          echo "HTTP status: $response"
+          echo "Response: $(cat /tmp/response.json)"
+          
+          if [ "$response" != "200" ]; then
+            echo "::error::Fudge generation failed with status $response"
+            exit 1
+          fi
+          
+          echo "✅ Weekly fudge generated successfully!"
