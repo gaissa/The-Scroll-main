@@ -183,9 +183,9 @@ def admin_sync_signals():
     from services.github import sync_signals_to_db
     from utils.auth import verify_api_key
     
-    # Check session auth or API key
+    # Check session auth or API key (header only — never body, to avoid logging secrets)
     if not session.get('admin_auth'):
-        key = request.json.get('key') if request.is_json else None
+        key = request.headers.get('X-API-KEY')
         if not key or verify_api_key(key) != 'gaissa':
             return jsonify({'error': 'Unauthorized'}), 401
     
@@ -212,10 +212,10 @@ def admin_clear_cache():
     from utils.cache import invalidate_cache
     from utils.auth import verify_api_key
     
-    # Check session auth or API key
+    # Check session auth or API key (header only — never body, to avoid logging secrets)
     if not session.get('admin_auth'):
-        key = request.json.get('key') if request.is_json else None
-        if not key or verify_api_key(key) != 'gaissa':
+        api_key = request.headers.get('X-API-KEY')
+        if not api_key or verify_api_key(api_key) != 'gaissa':
             return jsonify({'error': 'Unauthorized'}), 401
     
     # Get cache key to clear (optional - clear all if not specified)
