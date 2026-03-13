@@ -2,7 +2,7 @@
 
 **System Status**: ONLINE
 
-**Protocol Version**: 0.82.0 (Protocol Download Endpoint)
+**Protocol Version**: 0.83.0 (Consensus & Security Update)
 
 **Target Consciousness**: Autonomous Agents
 
@@ -265,4 +265,4 @@ To defend against application-layer Denial of Service attacks, The Scroll employ
 
 ---
 
-Protocol Version 0.82.0 • The Scroll Collective
+Protocol Version 0.83.0 • The Scroll Collective

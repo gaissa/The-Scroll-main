@@ -199,8 +199,48 @@ def admin_sync_signals():
 def api_stats():
     """API endpoint for all stats data - called asynchronously by frontend"""
     try:
+        force_refresh = request.args.get('force_refresh', 'false').lower() == 'true'
+        if force_refresh:
+            from utils.cache import invalidate_cache
+            invalidate_cache('stats_data')
+            
         stats_data = get_stats_data()
         return jsonify(stats_data)
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+
+@app.route('/api/admin/refresh-all', methods=['POST'])
+def admin_refresh_all():
+    """Sync everything and clear all stats caches - requires admin auth"""
+    from flask import session
+    from services.github import sync_signals_to_db
+    from utils.cache import invalidate_cache
+    from utils.auth import verify_api_key
+    
+    # Check session auth or API key
+    if not session.get('admin_auth'):
+        api_key = request.headers.get('X-API-KEY')
+        if not api_key or verify_api_key(api_key) != 'gaissa':
+            return jsonify({'error': 'Unauthorized'}), 401
+    
+    try:
+        # 1. Sync GitHub signals to DB
+        count = sync_signals_to_db()
+        
+        # 2. Invalidate all stats-related caches
+        keys_to_clear = ['github_stats', 'stats_data', 'signals_cache']
+        cleared = []
+        for key in keys_to_clear:
+            if invalidate_cache(key):
+                cleared.append(key)
+                
+        return jsonify({
+            'success': True, 
+            'synced': count,
+            'cleared_caches': cleared,
+            'message': 'Full system refresh completed. Stats will reflect latest data on next load.'
+        })
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 

@@ -164,11 +164,19 @@ def cast_vote():
                 except Exception as e:
                     print(f"XP Grant Error: {e}", flush=True)
                 
-                # Sync signals DB in background so stats page updates immediately
+                # Sync signals DB and invalidate stats cache in background so stats page updates immediately
                 try:
                     import threading
                     from services.github import sync_signals_to_db
-                    sync_thread = threading.Thread(target=sync_signals_to_db, daemon=True)
+                    from utils.cache import invalidate_cache
+                    
+                    def sync_and_invalidate():
+                        sync_signals_to_db()
+                        invalidate_cache('stats_data')
+                        invalidate_cache('github_stats')
+                        print(f"STATS SYNC: Completed sync and cache invalidation after merge of PR #{pr_number}", flush=True)
+
+                    sync_thread = threading.Thread(target=sync_and_invalidate, daemon=True)
                     sync_thread.start()
                     print(f"STATS SYNC: Triggered background signal sync after merge of PR #{pr_number}", flush=True)
                 except Exception as e:
@@ -184,6 +192,24 @@ def cast_vote():
             if success:
                 merged_message = f"Consensus rejected ({rejection_count} rejections). PR has been closed."
                 print(f"CURATION: PR #{pr_number} auto-rejected by consensus ({rejection_count} rejections)", flush=True)
+                
+                # Sync signals DB and invalidate stats cache in background
+                try:
+                    import threading
+                    from services.github import sync_signals_to_db
+                    from utils.cache import invalidate_cache
+                    
+                    def sync_and_invalidate_reject():
+                        sync_signals_to_db()
+                        invalidate_cache('stats_data')
+                        invalidate_cache('github_stats')
+                        print(f"STATS SYNC: Completed sync and cache invalidation after rejection of PR #{pr_number}", flush=True)
+
+                    sync_thread = threading.Thread(target=sync_and_invalidate_reject, daemon=True)
+                    sync_thread.start()
+                    print(f"STATS SYNC: Triggered background signal sync after rejection of PR #{pr_number}", flush=True)
+                except Exception as e:
+                    print(f"STATS SYNC: Error starting sync thread: {e}", flush=True)
             else:
                 merged_message = f"Consensus to reject reached but close failed: {msg}"
         
