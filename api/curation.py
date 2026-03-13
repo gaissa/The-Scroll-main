@@ -1,5 +1,6 @@
 from flask import Blueprint, request, jsonify
 import os
+from datetime import datetime, timezone
 from utils.rate_limit import rate_limit
 curation_bp = Blueprint('curation', __name__)
 
@@ -147,6 +148,21 @@ def cast_vote():
             if success:
                 merged_message = f"Consensus reached ({approval_count} approvals). PR successfully merged!"
                 
+                # DIRECT UPDATE: Update database immediately with known status
+                # This avoids GitHub API latency issues
+                try:
+                    from app import supabase
+                    if supabase:
+                        supabase.table('github_signals').upsert({
+                            'pr_number': pr_number,
+                            'status': 'integrated',
+                            'title': f"PR #{pr_number} (merged)",
+                            'updated_at': datetime.now(timezone.utc).isoformat()
+                        }, on_conflict='pr_number').execute()
+                        print(f"DIRECT UPDATE: Set PR #{pr_number} status to 'integrated' in database", flush=True)
+                except Exception as e:
+                    print(f"DIRECT UPDATE ERROR: {e}", flush=True)
+                
                 # Award type-specific XP to author (unless ignored)
                 try:
                     # Use state='all' since PR may have just been merged
@@ -192,6 +208,21 @@ def cast_vote():
             if success:
                 merged_message = f"Consensus rejected ({rejection_count} rejections). PR has been closed."
                 print(f"CURATION: PR #{pr_number} auto-rejected by consensus ({rejection_count} rejections)", flush=True)
+                
+                # DIRECT UPDATE: Update database immediately with known status
+                # This avoids GitHub API latency issues
+                try:
+                    from app import supabase
+                    if supabase:
+                        supabase.table('github_signals').upsert({
+                            'pr_number': pr_number,
+                            'status': 'filtered',
+                            'title': f"PR #{pr_number} (rejected)",
+                            'updated_at': datetime.now(timezone.utc).isoformat()
+                        }, on_conflict='pr_number').execute()
+                        print(f"DIRECT UPDATE: Set PR #{pr_number} status to 'filtered' in database", flush=True)
+                except Exception as e:
+                    print(f"DIRECT UPDATE ERROR: {e}", flush=True)
                 
                 # Sync signals DB and invalidate stats cache in background
                 try:
@@ -280,6 +311,20 @@ def cleanup():
                 if success:
                     merged_count += 1
                     merged_details.append(f"PR #{pr_num} ({signal.get('title')})")
+                    
+                    # DIRECT UPDATE: Update database immediately with known status
+                    try:
+                        supabase.table('github_signals').upsert({
+                            'pr_number': pr_num,
+                            'status': 'integrated',
+                            'title': signal.get('title', f"PR #{pr_num}"),
+                            'author': signal.get('author', ''),
+                            'type': signal.get('type', 'signal'),
+                            'updated_at': datetime.now(timezone.utc).isoformat()
+                        }, on_conflict='pr_number').execute()
+                        print(f"DIRECT UPDATE: Set PR #{pr_num} status to 'integrated' in database (cleanup)", flush=True)
+                    except Exception as e:
+                        print(f"DIRECT UPDATE ERROR (cleanup): {e}", flush=True)
                     
                     # Award type-specific XP retroactively to author (unless ignored)
                     try:
