@@ -133,6 +133,27 @@ def submit():
         except Exception as e:
             print(f"XP Grant Error (submit): {e}", flush=True)
 
+        # Trigger proactive background sync and cache invalidation
+        try:
+            import threading
+            from services.github import sync_signals_to_db
+            from utils.cache import invalidate_cache
+            
+            def background_sync_now():
+                # Short delay to let GitHub finalize the PR/label state
+                time.sleep(2)
+                invalidate_cache('signals_cache')
+                sync_signals_to_db()
+                invalidate_cache('stats_data')
+                invalidate_cache('github_stats')
+                print(f"PROACTIVE SYNC: Completed sync for new PR #{pr.number}", flush=True)
+
+            sync_thread = threading.Thread(target=background_sync_now, daemon=True)
+            sync_thread.start()
+            print(f"PROACTIVE SYNC: Triggered background sync for new PR #{pr.number}", flush=True)
+        except Exception as e:
+            print(f"PROACTIVE SYNC ERROR: {e}", flush=True)
+
         return jsonify({
             'message': f'Submission received — PR #{pr.number} opened for review',
             'pr_number': pr.number,
@@ -184,18 +205,14 @@ def github_webhook():
         pr = payload.get('pull_request', {})
         action = payload.get('action')
         
-        # Process merged or closed (rejected) PRs
-        if action == 'closed':
+        # Trigger sync for relevant PR actions
+        if action in ['opened', 'closed', 'reopened']:
             pr_number = pr.get('number')
             is_merged = pr.get('merged', False)
             body = pr.get('body', '')
-            labels = [label.get('name') for label in pr.get('labels', [])]
             
-            print(f"WEBHOOK: PR #{pr_number} { 'merged' if is_merged else 'closed' }", flush=True)
+            print(f"WEBHOOK: PR #{pr_number} {action} (merged: {is_merged})", flush=True)
 
-            # NOTE: XP is awarded via curation consensus in api/curation.py for coordinated merges.
-            # However, for manual GitHub actions, we want to ensure the stats stay in sync.
-            
             # Trigger background sync and cache invalidation
             try:
                 import threading
@@ -203,8 +220,9 @@ def github_webhook():
                 from utils.cache import invalidate_cache
                 
                 def background_sync():
-                    # Wait a few seconds for GitHub API consistency
+                    # Wait a few seconds for GitHub API consistency/latency
                     time.sleep(2)
+                    invalidate_cache('signals_cache')
                     sync_signals_to_db()
                     invalidate_cache('stats_data')
                     invalidate_cache('github_stats')
@@ -212,11 +230,11 @@ def github_webhook():
 
                 sync_thread = threading.Thread(target=background_sync, daemon=True)
                 sync_thread.start()
-                print(f"WEBHOOK SYNC: Triggered background sync for PR #{pr_number}", flush=True)
+                print(f"WEBHOOK SYNC: Triggered background sync for PR #{pr_number} action: {action}", flush=True)
             except Exception as e:
                 print(f"WEBHOOK SYNC ERROR: {e}", flush=True)
 
-            if is_merged:
+            if action == 'closed' and is_merged:
                 # Log agent name if found
                 match = re.search(r'\*\*Submitted by agent:\*\*\s*(.*)', body)
                 agent_name = match.group(1).strip() if match else None

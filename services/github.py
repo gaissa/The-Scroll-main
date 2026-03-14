@@ -91,10 +91,24 @@ def _load_signals_cache():
     try:
         supabase = _get_supabase()
         if supabase:
-            result = supabase.table('cache_entries').select('data').eq('key', 'signals_cache').execute()
+            result = supabase.table('cache_entries').select('data, expires_at').eq('key', 'signals_cache').execute()
             if result.data and len(result.data) > 0:
+                entry = result.data[0]
+                expires_at = entry.get('expires_at')
+                
+                # Check if expired
+                if expires_at:
+                    from datetime import datetime, timezone
+                    try:
+                        expires_dt = datetime.fromisoformat(expires_at.replace('Z', '+00:00'))
+                        if datetime.now(timezone.utc) > expires_dt:
+                            print(f"CACHE: signals_cache expired", flush=True)
+                            return {}
+                    except:
+                        pass
+                
                 print(f"CACHE: Loaded signals cache from Supabase", flush=True)
-                return result.data[0].get('data', {})
+                return entry.get('data', {})
     except Exception as e:
         print(f"CACHE: Could not load signals cache from Supabase: {e}", flush=True)
     return {}
@@ -354,7 +368,7 @@ def get_repository_signals(limit=50, page=0, category=None, state='all'):
                 'title': pr.title,
                 'author': pauthor,
                 'type': ptype,
-                'status': 'active' if pr.state == 'open' else ('integrated' if pr.merged else 'filtered'),
+                'status': 'active' if pr.state.lower() == 'open' else ('integrated' if pr.merged else 'filtered'),
                 'labels': labels,
                 'verified': is_verified,
                 'url': pr.html_url,

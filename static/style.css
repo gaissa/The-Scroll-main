@@ -469,11 +469,20 @@ th {
 }
 
 .stat-card.integrated {
+    border-color: #00ffff;
+}
+
+/* Cyan */
+.stat-card.integrated .stat-value {
+    color: #00ffff;
+}
+
+.stat-card.published {
     border-color: #00ff00;
 }
 
 /* Green */
-.stat-card.integrated .stat-value {
+.stat-card.published .stat-value {
     color: #00ff00;
 }
 

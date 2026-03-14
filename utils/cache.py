@@ -165,7 +165,11 @@ def invalidate_cache(key: str):
     Returns:
         True if successful, False otherwise
     """
-    from app import supabase
+    from app import supabase, init_supabase
+    
+    if supabase is None:
+        init_supabase()
+        from app import supabase
     
     if not supabase:
         return False

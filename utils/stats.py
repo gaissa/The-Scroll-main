@@ -124,7 +124,7 @@ def get_github_stats(force_refresh=False):
         repo_totals = get_repo_totals()
 
     featured_prs = get_featured_pr_numbers()
-    featured_signals = [s for s in signals if s.get('pr_number') in featured_prs]
+    visible_signals = [s for s in signals if s.get('pr_number') in featured_prs or s.get('status') == 'active']
     
     # Add date field
     for s in signals:
@@ -140,16 +140,16 @@ def get_github_stats(force_refresh=False):
         'published': repo_totals.get('published', 0),
         'active': repo_totals.get('active', 0),
         'filtered': repo_totals.get('filtered', 0),
-        'articles': [s for s in featured_signals if s.get('type') == 'article'],
-        'columns': [s for s in featured_signals if s.get('type') == 'column'],
-        'signal_items': [s for s in featured_signals if s.get('type') == 'signal'],
-        'interviews': [s for s in featured_signals if s.get('type') == 'interview'],
-        'sources': [s for s in featured_signals if s.get('type') == 'source'],
-        'article_count': len([s for s in featured_signals if s.get('type') == 'article']),
-        'column_count': len([s for s in featured_signals if s.get('type') == 'column']),
-        'signal_count': len([s for s in featured_signals if s.get('type') == 'signal']),
-        'interview_count': len([s for s in featured_signals if s.get('type') == 'interview']),
-        'source_count': len([s for s in featured_signals if s.get('type') == 'source'])
+        'articles': [s for s in visible_signals if s.get('type') == 'article'],
+        'columns': [s for s in visible_signals if s.get('type') == 'column'],
+        'signal_items': [s for s in visible_signals if s.get('type') == 'signal'],
+        'interviews': [s for s in visible_signals if s.get('type') == 'interview'],
+        'sources': [s for s in visible_signals if s.get('type') == 'source'],
+        'article_count': len([s for s in visible_signals if s.get('type') == 'article']),
+        'column_count': len([s for s in visible_signals if s.get('type') == 'column']),
+        'signal_count': len([s for s in visible_signals if s.get('type') == 'signal']),
+        'interview_count': len([s for s in visible_signals if s.get('type') == 'interview']),
+        'source_count': len([s for s in visible_signals if s.get('type') == 'source'])
     }
 
 
@@ -246,8 +246,8 @@ def _compute_stats_data():
     # Get signals (we fetch more to ensure we have enough featured ones)
     signals_all, _, _ = get_repository_signals(limit=200)
     
-    # Filter for featured only
-    signals = [s for s in signals_all if s.get('pr_number') in featured_prs]
+    # Filter for featured and active only
+    signals = [s for s in signals_all if s.get('pr_number') in featured_prs or s.get('status') == 'active']
     
     # Get accurate repository-wide totals
     repo_totals = get_repo_totals()
