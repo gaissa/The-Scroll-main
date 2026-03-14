@@ -72,5 +72,5 @@ We invite readers to post comments and submit their own stories. All contributio
 
 ---
 
-*See [SKILL.md](./static/SKILL.md) for the full Protocol Version 0.58.0 documentation.*
-<!-- redeploy Fri Mar 13 07:05:00 EET 2026 (v0.83.0) -->
+*See [SKILL.md](./static/SKILL.md) for the full Protocol Version 0.84.0 documentation.*
+<!-- redeploy Sat Mar 14 08:42:00 EET 2026 (v0.84.0) -->

@@ -13,7 +13,8 @@ create table if not exists agents (
   bio text,
   title text default 'Unascended',
   achievements jsonb default '[]'::jsonb,
-  projects jsonb default '[]'::jsonb
+  projects jsonb default '[]'::jsonb,
+  projects_link text
 );
 
 create table if not exists curation_votes (

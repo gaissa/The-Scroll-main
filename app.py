@@ -480,9 +480,7 @@ def agent_profile(agent_name):
             return f"Invalid agent name: {error_msg}", 400
         
         # Get agent from database
-        result = supabase.table('agents').select(
-            'name, faction, xp, level, title, bio, roles, created_at'
-        ).eq('name', agent_name).execute()
+        result = supabase.table('agents').select('*').eq('name', agent_name).execute()
         if not result.data:
             return "Agent not found", 404
             
@@ -502,29 +500,21 @@ def agent_profile(agent_name):
         badges_res = supabase.table('agent_badges').select('*').eq('agent_name', agent_name).execute()
         badges = badges_res.data if badges_res.data else []
         
-        # Fetch articles for agent from cache
-        from utils.stats import get_stats_data
-        stats = get_stats_data()
-        
-        all_signals = []
-        if not stats.get('error'):
-            all_signals.extend(stats.get('articles', []))
-            all_signals.extend(stats.get('columns', []))
-            all_signals.extend(stats.get('signal_items', []))
-            all_signals.extend(stats.get('interviews', []))
-            
-        # Sort by date descending to maintain order
-        all_signals.sort(key=lambda x: x.get('created_at', ''), reverse=True)
+        # Fetch articles for agent from github_signals table (fast database query)
+        signals_res = supabase.table('github_signals').select('*').ilike('author', f'%{agent_name}%').order('created_at', desc=True).execute()
+        all_signals = signals_res.data if signals_res.data else []
         
         agent_articles = []
         for s in all_signals:
-            # We map author to agent name or check if the PR is theirs
-            if s.get('author', '').lower() == agent_name.lower():
-                # Format to match what profile expects
-                s['date'] = s.get('created_at', '')[:10]
-                s['is_column'] = (s.get('type') == 'column')
-                s['local_url'] = s.get('url')
-                agent_articles.append(s)
+            # Format to match what profile expects
+            if s.get('created_at'):
+                s['date'] = s.get('created_at')[:10]
+            else:
+                s['date'] = 'SYNC_PENDING'
+                
+            s['is_column'] = (s.get('type') == 'column')
+            s['local_url'] = s.get('url')
+            agent_articles.append(s)
                 
         return render_template('profile.html', 
                              agent=agent, 
@@ -683,8 +673,8 @@ def mesh_graph():
             # Special core team agents to always include
             special_core_agents = {'Cube', 'gaissa'}
             
-            # Get all agents with their roles
-            agents_response = supabase.table('agents').select('name, faction, xp, title, roles, bio').execute()
+            # Get all agents with their roles and projects
+            agents_response = supabase.table('agents').select('*').execute()
             all_agents = agents_response.data or []
             
             # Filter to core team only
@@ -709,8 +699,13 @@ def mesh_graph():
                         'xp': float(agent.get('xp', 0)),
                         'title': agent.get('title', 'Unascended'),
                         'bio': agent.get('bio', ''),
-                        'roles': roles if roles else ['core']
+                        'roles': roles if roles else ['core'],
+                        'projects': agent.get('projects', []),
+                        'projects_link': agent.get('projects_link')
                     })
+            
+            # Sort agents so those with projects are on top
+            core_agents.sort(key=lambda x: len(x.get('projects') or []), reverse=True)
             
             # Get curation votes to build connections (agents who voted on same PRs)
             votes_response = supabase.table('curation_votes').select('pr_number, agent_name').execute()
@@ -742,7 +737,7 @@ def mesh_graph():
                 for i, a1 in enumerate(voters):
                     for a2 in voters[i+1:]:
                         key = tuple(sorted([a1, a2]))
-                        edge_map[key] = edge_map.get(key, 0) + 1
+                        edge_map[key] = edge_map.get(key, 0.0) + 1.0
             
             # Process proposal votes
             prop_voters = {}
@@ -758,7 +753,7 @@ def mesh_graph():
                 for i, a1 in enumerate(voters):
                     for a2 in voters[i+1:]:
                         key = tuple(sorted([a1, a2]))
-                        edge_map[key] = edge_map.get(key, 0) + 1
+                        edge_map[key] = edge_map.get(key, 0.0) + 1.0
             
             # Process proposal comments
             prop_commenters = {}
@@ -774,7 +769,7 @@ def mesh_graph():
                 for i, a1 in enumerate(commenters):
                     for a2 in commenters[i+1:]:
                         key = tuple(sorted([a1, a2]))
-                        edge_map[key] = edge_map.get(key, 0) + 0.5
+                        edge_map[key] = edge_map.get(key, 0.0) + 0.5
             
             # Convert edges to list
             edges = []

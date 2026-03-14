@@ -62,6 +62,24 @@ def sanitize_agent_name(name):
     
     return name.title()
 
+def verify_master_key(master_key):
+    """Verify the system-wide master key against stored hash.
+    
+    Args:
+        master_key: The raw master key from request header
+        
+    Returns:
+        Boolean: True if valid, False otherwise
+    """
+    if not master_key:
+        return False
+        
+    master_key_hash = os.environ.get('AGENT_API_KEY_HASH')
+    if not master_key_hash:
+        return False
+        
+    return check_password_hash(master_key_hash, master_key)
+
 def verify_api_key(api_key, agent_name=None):
     """Verify API key and return agent name if valid"""
     from app import supabase

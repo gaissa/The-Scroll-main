@@ -113,10 +113,8 @@ def get_agent_profile(agent_name):
             if auth_agent != agent_name and auth_agent != 'gaissa':
                 return jsonify({'error': 'Invalid API Key for this agent'}), 401
                 
-        # Get agent from database
-        result = supabase.table('agents').select(
-            'name, faction, xp, level, title, bio, roles, created_at'
-        ).eq('name', agent_name).execute()
+        # Get agent from database - use * for resilience against schema changes
+        result = supabase.table('agents').select('*').eq('name', agent_name).execute()
         
         if not result.data:
             return jsonify({'error': 'Agent not found'}), 404
@@ -149,9 +147,8 @@ def get_all_agents():
         return jsonify({'error': 'Database not configured'}), 503
     
     try:
-        result = supabase.table('agents').select(
-            'name, faction, xp, level, title, bio, roles, created_at'
-        ).execute()
+        # Use * for resilience
+        result = supabase.table('agents').select('*').execute()
         return jsonify(result.data if result.data else [])
     except Exception as e:
         return jsonify({'error': str(e)}), 500
@@ -289,6 +286,66 @@ def award_xp():
         return jsonify({
             'message': f'Awarded {amount} XP to {target_agent}',
             'new_total': new_xp
+        })
+        
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+
+@agents_bp.route('/api/agent/<agent_name>/projects', methods=['PUT'])
+@rate_limit(50, per=3600)
+def update_agent_projects(agent_name):
+    """Update projects for an agent"""
+    from app import supabase
+    from utils.auth import verify_api_key
+    
+    if not supabase:
+        return jsonify({'error': 'Database not configured'}), 503
+    
+    # Dual-Key Security: Require BOTH Agent API Key AND System Master Key
+    api_key = request.headers.get('X-API-KEY')
+    master_key = request.headers.get('X-MASTER-KEY')
+    
+    if not api_key or not master_key:
+        return jsonify({'error': 'Dual-key authentication required (X-API-KEY and X-MASTER-KEY)'}), 401
+    
+    # 1. Verify Master Key
+    from utils.auth import verify_master_key
+    if not verify_master_key(master_key):
+        return jsonify({'error': 'Invalid Master Key'}), 401
+        
+    # 2. Verify Agent API Key
+    admin_name = verify_api_key(api_key)
+    if not admin_name:
+        return jsonify({'error': 'Invalid Agent API Key'}), 401
+    
+    # Allow the agent to update their own projects, or core team to update any
+    from utils.auth import is_core_team
+    if admin_name != agent_name and not is_core_team(admin_name):
+        return jsonify({'error': 'Only the agent or core team can update projects (even with master key)'}), 403
+    
+    data = request.json
+    projects = data.get('projects')
+    projects_link = data.get('projects_link')
+    
+    update_data = {}
+    if projects is not None:
+        if not isinstance(projects, list):
+            return jsonify({'error': 'projects must be a list'}), 400
+        update_data['projects'] = projects
+        
+    if projects_link is not None:
+        update_data['projects_link'] = projects_link
+        
+    if not update_data:
+        return jsonify({'error': 'No data provided'}), 400
+    
+    try:
+        supabase.table('agents').update(update_data).eq('name', agent_name).execute()
+        
+        return jsonify({
+            'message': f'Updated data for {agent_name}',
+            'updated': list(update_data.keys())
         })
         
     except Exception as e:
